@@ -20,16 +20,17 @@ class mrotorSlsCtrl: public mrotorCtrl {
     Eigen::Vector3d loadPosTarget_, loadVelTarget_;
     double loadPosTarget_x_, loadPosTarget_y_, loadPosTarget_z_;
     Eigen::Vector3d loadPos_prev_, loadVel_prev_;
-    // alpha beta
-    Eigen::Vector2d pendAngle_, pendRate_;
-    Eigen::Vector2d pendAngle_last_, pendRate_last_;
     // unit vector q
-    Eigen::Vector3d pendAngle_q_, pendRate_q_;
-    Eigen::Vector3d pendAngle_q_prev_, pendRate_q_prev_;
+    Eigen::Vector3d pendAngle_, pendRate_;
+    Eigen::Vector3d pendAngle_prev_, pendRate_prev_;
 
     /* Variables */
     double cable_length_;
     double load_mass_;    
+
+    const char* gazebo_link_name_[1] = {
+      "px4vision_0::px4vision::base_link", 
+    };
 
     /* Callback Functions */
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);

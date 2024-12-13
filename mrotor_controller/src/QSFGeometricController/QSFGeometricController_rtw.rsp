@@ -1,0 +1,6 @@
+﻿rt_nonfinite.obj
+rtGetNaN.obj
+rtGetInf.obj
+QSFGeometricController_initialize.obj
+QSFGeometricController_terminate.obj
+QSFGeometricController.obj

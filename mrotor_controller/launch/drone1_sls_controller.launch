@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<launch>
+    <group ns="drone1">
+        <arg name="mav_id" default="1"/>
+        <arg name="mav_name" default="px4vision"/>
+        <arg name="sim_enabled" default="true"/>
+        <arg name="ctrl_enabled" default="false"/>
+        <arg name="rate_ctrl_enabled" default="true"/>
+        <arg name="traj_tracking_enabled" default="false"/>
+        <arg name="finite_diff_enabled" default="true"/>
+        <arg name="mav_num" value="1"/>
+        <arg name="pos_x_0" default="0.0"/>
+        <arg name="pos_y_0" default="0.0"/>
+        <arg name="pos_z_0" default="1.0"/>
+        <arg name="tracking_exit_min_error" default="0.5"/>
+
+        <node pkg="mrotor_controller" type="node" name="mrotor_controller" output="screen">
+            <param name="mav_num" type="int" value="$(arg mav_num)" />
+            <param name="mav_id" type="int" value="$(arg mav_id)" />
+            <param name="mav_name" type="string" value="$(arg mav_name)" />
+            <param name="sim_enabled" value="$(arg sim_enabled)" />
+            <param name="ctrl_enabled" value="$(arg ctrl_enabled)" />
+            <param name="rate_ctrl_enabled" value="$(arg rate_ctrl_enabled)" />
+            <param name="traj_tracking_enabled" value="$(arg traj_tracking_enabled)" />
+            <param name="finite_diff_enabled" value="$(arg finite_diff_enabled)" />
+            <param name="max_acc" value="10.0" />
+            <param name="mav_mass" value="1.500" />
+            <param name="cable_length" value="0.85"/>
+            <param name="load_mass" value="0.25"/> 
+            <param name="attctrl_tau" value="0.3" />
+            <param name="normalized_thrust_constant" value="0.05055"/>
+            <param name="normalized_thrust_offset" value="0.0"/>
+            <param name="Kp_x" value="10.0" />
+            <param name="Kp_y" value="10.0" />
+            <param name="Kp_z" value="20.0" />
+            <param name="Kv_x" value="5.0"/>
+            <param name="Kv_y" value="5.0"/>
+            <param name="Kv_z" value="10.0"/>
+            <param name="Ka_x" value="35.0" />
+            <param name="Ka_y" value="35.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="10.0"/>
+            <param name="Kj_y" value="10.0"/>
+            <param name="Kj_z" value="0.0"/>
+            <param name="c_x" value="0.0"/>
+            <param name="c_y" value="0.0"/>
+            <param name="c_z" value="0.2"/>
+            <param name="r_x" value="0.0"/>
+            <param name="r_y" value="0.0"/>
+            <param name="r_z" value="0.0"/>
+            <param name="fr_x" value="0.0"/>
+            <param name="fr_y" value="0.0"/>
+            <param name="fr_z" value="0.0"/>
+            <param name="ph_x" value="0.0"/>
+            <param name="ph_y" value="0.0"/>
+            <param name="ph_z" value="0.0"/>
+            <param name="pos_x_0" value="$(arg pos_x_0)"/>
+            <param name="pos_y_0" value="$(arg pos_y_0)"/>
+            <param name="pos_z_0" value="$(arg pos_z_0)"/>
+            <param name="tracking_exit_min_error" value="$(arg tracking_exit_min_error)"/>
+        </node>
+    </group>
+
+</launch>

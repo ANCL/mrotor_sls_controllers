@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>mrotor_controllers</name>
+  <name>mrotor_sls_controllers</name>
   <version>0.0.1</version>
   <description>The mrotor_controllers package</description>
 

@@ -32,7 +32,6 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
     /* Timer */
-
     statusloop_timer_ = nh_.createTimer(ros::Duration(1), &mrotorCtrl::statusloopCb, this);
 
     /* Offboard Rate */
@@ -273,6 +272,32 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     else if(Kvel_z_ != config.Kv_z) {
         Kvel_z_ = config.Kv_z;
         ROS_INFO("Reconfigure request : Kv_z = %.3f ", Kvel_z_);
+    }
+    // Acceleration
+    else if(Kacc_x_ != config.Ka_x) {
+        Kacc_x_ = config.Ka_x;
+        ROS_INFO("Reconfigure request : Ka_x = %.3f ", Kacc_x_);
+    }
+    else if(Kacc_y_ != config.Ka_y) {
+        Kacc_y_ = config.Ka_y;
+        ROS_INFO("Reconfigure request : Ka_y = %.3f ", Kacc_y_);
+    }
+    else if(Kacc_z_ != config.Ka_z) {
+        Kacc_z_ = config.Ka_z;
+        ROS_INFO("Reconfigure request : Ka_z = %.3f ", Kacc_z_);
+    }
+    // Jerk
+    else if(Kjer_x_ != config.Kj_x) {
+        Kjer_x_ = config.Kj_x;
+        ROS_INFO("Reconfigure request : Kj_x = %.3f ", Kjer_x_);
+    }
+    else if(Kjer_y_ != config.Kj_y) {
+        Kjer_y_ = config.Kj_y;
+        ROS_INFO("Reconfigure request : Kj_y = %.3f ", Kjer_y_);
+    }
+    else if(Kjer_z_ != config.Kj_z) {
+        Kjer_z_ = config.Kj_z;
+        ROS_INFO("Reconfigure request : Kj_z = %.3f ", Kjer_z_);
     }
 
     /* References */

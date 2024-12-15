@@ -55,6 +55,7 @@
   <build_depend>geometry_msgs</build_depend>
   <build_depend>mavros</build_depend>
   <build_depend>mavros_msgs</build_depend>
+  <build_depend>controller_msgs</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
   <build_export_depend>std_msgs</build_export_depend>

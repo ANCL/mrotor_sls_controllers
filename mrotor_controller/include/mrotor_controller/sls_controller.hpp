@@ -3,23 +3,27 @@
 
 #include "mrotor_controller/mrotor_controller.hpp"
 #include "controller_msgs/SlsState.h"
+#include "controller_msgs/SlsForce.h"
 
 class mrotorSlsCtrl: public mrotorCtrl {
   private:
     /* Publishers */
     ros::Publisher sls_state_pub_;
+    ros::Publisher sls_force_pub_;
 
     /* Subscribers */
     ros::Subscriber vicon_load_sub_;
     
     /* Messages */
     controller_msgs::SlsState sls_state_; 
+    controller_msgs::SlsForce sls_force_; 
 
     /* Vectors */
     Eigen::Vector3d loadPos_, loadVel_;
+    Eigen::Vector3d loadPos_prev_, loadVel_prev_;
     Eigen::Vector3d loadPosTarget_, loadVelTarget_;
     double loadPosTarget_x_, loadPosTarget_y_, loadPosTarget_z_;
-    Eigen::Vector3d loadPos_prev_, loadVel_prev_;
+    
     // unit vector q
     Eigen::Vector3d pendAngle_, pendRate_;
     Eigen::Vector3d pendAngle_prev_, pendRate_prev_;

@@ -34,6 +34,12 @@
             <param name="Kv_x" value="5.0"/>
             <param name="Kv_y" value="5.0"/>
             <param name="Kv_z" value="10.0"/>
+            <param name="Ka_x" value="0.0" />
+            <param name="Ka_y" value="0.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="0.0"/>
+            <param name="Kj_y" value="0.0"/>
+            <param name="Kj_z" value="0.0"/>
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
             <param name="c_z" value="1.0"/>

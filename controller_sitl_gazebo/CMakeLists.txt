@@ -7,7 +7,19 @@ project(controller_sitl_gazebo)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  geometry_msgs
+  mavros
+  mavros_msgs
+  tf2
+  tf2_ros
+  message_generation
+  dynamic_reconfigure
+  gazebo_ros
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -99,9 +111,9 @@ find_package(catkin REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES controller_sitl_gazebo
-#  CATKIN_DEPENDS other_catkin_pkg
+ INCLUDE_DIRS include
+ LIBRARIES controller_sitl_gazebo message_runtime
+ CATKIN_DEPENDS roscpp rospy std_msgs gazebo_ros
 #  DEPENDS system_lib
 )
 
@@ -112,8 +124,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-# ${catkin_INCLUDE_DIRS}
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIR}
+    ${Eigen_INCLUDE_DIRS}
+    ${GAZEBO_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -200,3 +215,19 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+find_package(gazebo REQUIRED)
+
+include_directories(${GAZEBO_INCLUDE_DIRS})
+link_directories(${GAZEBO_LIBRARY_DIRS})
+list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
+
+add_subdirectory(src/QSFGeometricController)
+
+add_library(hello_world SHARED src/hello_world.cc)
+target_link_libraries(hello_world ${GAZEBO_LIBRARIES})
+add_library(gazebo_sls_force_control_plugin SHARED src/gazebo_sls_force_control_plugin.cc)
+target_link_libraries(gazebo_sls_force_control_plugin 
+  ${GAZEBO_LIBRARIES}
+  QSFGeometricController
+  )

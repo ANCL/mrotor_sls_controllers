@@ -32,6 +32,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
     /* Timer */
+    cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorCtrl::cmdloopCb, this);  
     statusloop_timer_ = nh_.createTimer(ros::Duration(1), &mrotorCtrl::statusloopCb, this);
 
     /* Offboard Rate */
@@ -46,6 +47,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<bool>("rate_ctrl_enabled", rate_ctrl_enabled_, true);
     nh_private_.param<bool>("sim_enabled", sim_enabled_, true);
     nh_private_.param<bool>("finite_diff_enabled", finite_diff_enabled_, true);
+    nh_private_.param<bool>("mission_enabled", mission_enabled_, false);
     // drone physical constants
     nh_private_.param<double>("mav_mass", mav_mass_, 1.56);    
     nh_private_.param<double>("max_acc", max_fb_acc_, 9.0);
@@ -82,7 +84,17 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<double>("fr_z", fr_z_, 0.0);      
     nh_private_.param<double>("ph_x", ph_x_, 0.0);
     nh_private_.param<double>("ph_y", ph_y_, 0.0);    
-    nh_private_.param<double>("ph_z", ph_z_, 0.0);     
+    nh_private_.param<double>("ph_z", ph_z_, 0.0);  
+    // Mission Setpoints
+    nh_private_.param<double>("c_x_1", c_x_1_, 0.0);
+    nh_private_.param<double>("c_y_1", c_y_1_, 0.0);
+    nh_private_.param<double>("c_z_1", c_z_1_, 1.0);         
+    nh_private_.param<double>("c_x_2", c_x_2_, 0.0);
+    nh_private_.param<double>("c_y_2", c_y_2_, 0.0);
+    nh_private_.param<double>("c_z_2", c_z_2_, 1.0);
+    nh_private_.param<double>("c_x_3", c_x_3_, 0.0);
+    nh_private_.param<double>("c_y_3", c_y_3_, 0.0);
+    nh_private_.param<double>("c_z_3", c_z_3_, 1.0);      
     // Initial Positions
     nh_private_.param<double>("pos_x_0", pos_x_0_, 0.0);
     nh_private_.param<double>("pos_y_0", pos_y_0_, 0.0);
@@ -114,6 +126,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     init_complete_ = true;
     gazebo_last_called_ = ros::Time::now();
     vicon_last_called_ = ros::Time::now();
+    mission_last_called_ = ros::Time::now();
 }
 
 
@@ -178,8 +191,8 @@ void mrotorCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg)
         mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
         // mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
         
-        /* Publish Control Commands*/
-        exeControl();
+        // /* Publish Control Commands*/
+        // exeControl();
     }
 }
 
@@ -221,6 +234,11 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     else if(finite_diff_enabled_ != config.finite_diff_enabled) {
         finite_diff_enabled_ = config.finite_diff_enabled;
         ROS_INFO("Reconfigure request : finite_diff_enabled = %s ", finite_diff_enabled_ ? "true" : "false");
+    } 
+
+    else if(mission_enabled_ != config.mission_enabled) {
+        mission_enabled_ = config.mission_enabled;
+        ROS_INFO("Reconfigure request : mission_enabled = %s ", mission_enabled_ ? "true" : "false");
     } 
 
     /* Max Acceleration*/
@@ -306,7 +324,7 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
         c_x_ = config.c_x;
         ROS_INFO("Reconfigure request : c_x = %.3f ", c_x_);
     }
-    else if(c_x_ != config.c_y) {
+    else if(c_y_ != config.c_y) {
         c_y_ = config.c_y;
         ROS_INFO("Reconfigure request : c_y = %.3f ", c_y_);
     }
@@ -353,9 +371,54 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
         ph_z_ = config.ph_z;
         ROS_INFO("Reconfigure request : ph_z = %.3f ", ph_z_);
     }
+    /* Mission References */
+    // sp1
+    else if(c_x_1_ != config.c_x_1) {
+        c_x_1_ = config.c_x_1;
+        ROS_INFO("Reconfigure request : c_x_1 = %.3f ", c_x_1_);
+    }
+    else if(c_y_1_ != config.c_y_1) {
+        c_y_1_ = config.c_y_1;
+        ROS_INFO("Reconfigure request : c_y_1 = %.3f ", c_y_1_);
+    }
+    else if(c_z_1_ != config.c_z_1) {
+        c_z_1_ = config.c_z_1;
+        ROS_INFO("Reconfigure request : c_z_1 = %.3f ", c_z_1_);
+    }
+    // sp2
+    else if(c_x_2_ != config.c_x_2) {
+        c_x_2_ = config.c_x_2;
+        ROS_INFO("Reconfigure request : c_x_2 = %.3f ", c_x_2_);
+    }
+    else if(c_y_2_ != config.c_y_2) {
+        c_y_2_ = config.c_y_2;
+        ROS_INFO("Reconfigure request : c_y_2 = %.3f ", c_y_2_);
+    }
+    else if(c_z_2_ != config.c_z_2) {
+        c_z_2_ = config.c_z_2;
+        ROS_INFO("Reconfigure request : c_z_2 = %.3f ", c_z_2_);
+    }
+    // sp3    
+    else if(c_x_3_ != config.c_x_3) {
+        c_x_3_ = config.c_x_3;
+        ROS_INFO("Reconfigure request : c_x_3 = %.3f ", c_x_3_);
+    }
+    else if(c_y_3_ != config.c_y_3) {
+        c_y_3_ = config.c_y_3;
+        ROS_INFO("Reconfigure request : c_y_3 = %.3f ", c_y_3_);
+    }
+    else if(c_z_3_ != config.c_z_3) {
+        c_z_3_ = config.c_z_3;
+        ROS_INFO("Reconfigure request : c_z_3 = %.3f ", c_z_3_);
+    }
 
     Kpos_ << -Kpos_x_, -Kpos_y_, -Kpos_z_;
     Kvel_ << -Kvel_x_, -Kvel_y_, -Kvel_z_;  
+}
+
+void mrotorCtrl::cmdloopCb(const ros::TimerEvent &event) {
+    /* Publish Control Commands*/
+    exeControl();
 }
 
 void mrotorCtrl::statusloopCb(const ros::TimerEvent &event) {
@@ -544,6 +607,7 @@ void mrotorCtrl::updateReference(){
 }
 
 void mrotorCtrl::exeControl() {
+    printf("Mrotor Control EXE\n");
     if(init_complete_){
         Eigen::Vector3d desired_acc;
         desired_acc = applyIOSFBLCtrl(targetPos_, targetVel_);

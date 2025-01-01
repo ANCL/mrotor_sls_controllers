@@ -56,7 +56,7 @@ class mrotorCtrl {
 
     /* ROS Times */
     ros::Time last_request_, last_stage_;
-    ros::Time gazebo_last_called_, vicon_last_called_;
+    ros::Time gazebo_last_called_, vicon_last_called_, mission_last_called_, traj_tracking_last_called_;
 
     /* Messages */
     mavros_msgs::State mav_state_;
@@ -86,6 +86,7 @@ class mrotorCtrl {
     double pi = 3.1415926535;
     const char* gazebo_link_name_[1] = {
       "px4vision_0::base_link", 
+      // "iris_0::base_link"
     };
 
     /* Variables */
@@ -96,13 +97,15 @@ class mrotorCtrl {
     bool ctrl_enabled_;
     bool rate_ctrl_enabled_;
     bool sim_enabled_;
-    bool traj_tracking_enabled_;
+    bool traj_tracking_enabled_, traj_tracking_enabled_last_;
     bool init_complete_;
     bool finite_diff_enabled_;
     bool sitl_multi_vehicle_enabled_;
     bool gazebo_link_name_matched_ = false;
     bool last_tracking_state_;
     bool qsf_geo_ctrl_enabled_ = false;
+    bool mission_enabled_ = false;
+    bool mission_initialized_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links
@@ -118,13 +121,17 @@ class mrotorCtrl {
     double norm_thrust_offset_;
     // periods
     double diff_t_;
-    // mission stages
-    int stage = 0;
-    //reference
+    // mission
+    int mission_stage_ = 0;
+    // reference
     double c_x_, c_y_, c_z_;    // center of trajectory tracking & set-point of static tracking
     double r_x_, r_y_, r_z_;    // radium
     double fr_x_, fr_y_, fr_z_; // frequency
     double ph_x_, ph_y_, ph_z_; // phase shift
+    // mission setpoints
+    double c_x_1_, c_y_1_, c_z_1_;
+    double c_x_2_, c_y_2_, c_z_2_;
+    double c_x_3_, c_y_3_, c_z_3_;
     // tolerance
     double tracking_exit_min_error_;
 
@@ -136,6 +143,7 @@ class mrotorCtrl {
     void mavstateCb(const mavros_msgs::State::ConstPtr& msg);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void statusloopCb(const ros::TimerEvent &event);
+    void cmdloopCb(const ros::TimerEvent &event);
     void viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig &config, uint32_t level);
     // Helper Functions

@@ -372,7 +372,7 @@
       <momentConstant>0.06</momentConstant>
       <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
       <motorNumber>0</motorNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rotorDragCoefficient>0.00</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/motor_speed/0</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
@@ -389,7 +389,7 @@
       <momentConstant>0.06</momentConstant>
       <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
       <motorNumber>1</motorNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rotorDragCoefficient>0.00</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/motor_speed/1</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
@@ -406,7 +406,7 @@
       <momentConstant>0.06</momentConstant>
       <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
       <motorNumber>2</motorNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rotorDragCoefficient>0.00</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/motor_speed/2</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
@@ -423,7 +423,7 @@
       <momentConstant>0.06</momentConstant>
       <commandSubTopic>/gazebo/command/motor_speed</commandSubTopic>
       <motorNumber>3</motorNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
+      <rotorDragCoefficient>0.00</rotorDragCoefficient>
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/motor_speed/3</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
@@ -434,9 +434,9 @@
     <plugin name='magnetometer_plugin' filename='libgazebo_magnetometer_plugin.so'>
       <robotNamespace/>
       <pubRate>20</pubRate>
-      <noiseDensity>0.0004</noiseDensity>
-      <randomWalk>6.4e-06</randomWalk>
-      <biasCorrelationTime>600</biasCorrelationTime>
+      <noiseDensity>0.000</noiseDensity>
+      <randomWalk>0</randomWalk>
+      <biasCorrelationTime>0</biasCorrelationTime>
       <magTopic>/mag</magTopic>
     </plugin>
     <plugin name='barometer_plugin' filename='libgazebo_barometer_plugin.so'>
@@ -569,14 +569,14 @@
       <robotNamespace/>
       <linkName>/imu_link</linkName>
       <imuTopic>/imu</imuTopic>
-      <gyroscopeNoiseDensity>0.00018665</gyroscopeNoiseDensity>
-      <gyroscopeRandomWalk>3.8785e-05</gyroscopeRandomWalk>
-      <gyroscopeBiasCorrelationTime>1000.0</gyroscopeBiasCorrelationTime>
-      <gyroscopeTurnOnBiasSigma>0.0087</gyroscopeTurnOnBiasSigma>
-      <accelerometerNoiseDensity>0.00186</accelerometerNoiseDensity>
-      <accelerometerRandomWalk>0.006</accelerometerRandomWalk>
-      <accelerometerBiasCorrelationTime>300.0</accelerometerBiasCorrelationTime>
-      <accelerometerTurnOnBiasSigma>0.196</accelerometerTurnOnBiasSigma>
+      <gyroscopeNoiseDensity>0.000</gyroscopeNoiseDensity>
+      <gyroscopeRandomWalk>0</gyroscopeRandomWalk>
+      <gyroscopeBiasCorrelationTime>0.0</gyroscopeBiasCorrelationTime>
+      <gyroscopeTurnOnBiasSigma>0.00</gyroscopeTurnOnBiasSigma>
+      <accelerometerNoiseDensity>0.000</accelerometerNoiseDensity>
+      <accelerometerRandomWalk>0.00</accelerometerRandomWalk>
+      <accelerometerBiasCorrelationTime>0.0</accelerometerBiasCorrelationTime>
+      <accelerometerTurnOnBiasSigma>0.0</accelerometerTurnOnBiasSigma>
     </plugin>
     <!-- <link name="depthcamera_link">
       <pose>0.08 0.0 -0.01 0 0 0</pose>

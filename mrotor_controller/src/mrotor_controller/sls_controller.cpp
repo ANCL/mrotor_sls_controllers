@@ -23,11 +23,19 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     /* Publishers */
     sls_state_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state", 1);
     sls_force_pub_ = nh_.advertise<controller_msgs::SlsForce> ("mrotor_sls_controller/sls_force", 1);
+
+    /* Timer */
+    cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorSlsCtrl::cmdloopCb, this);  
     
     nh_private_.param<double>("cable_length", cable_length_, 0.85);
     nh_private_.param<double>("load_mass", load_mass_, 0.25);
 
     last_stage_ = ros::Time::now();
+
+    targetPos_ << c_x_, c_y_, c_z_; 
+    targetRadium_ << r_x_, r_y_, r_z_;
+    targetFrequency_ << fr_x_, fr_y_, fr_z_;
+    targetPhase_ << ph_x_, ph_y_, ph_z_;
 }
 
 mrotorSlsCtrl::~mrotorSlsCtrl(){
@@ -41,7 +49,7 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
         ROS_INFO("[gazeboLinkStateCb] Matching Gazebo Links");
         int n_name = sizeof(gazebo_link_name_)/sizeof(*gazebo_link_name_); 
         ROS_INFO_STREAM("[gazeboLinkStateCb] n_name=" << n_name);
-        int n_link = mav_num_*8+2+2; 
+        int n_link = mav_num_*8+2+1; 
         ROS_INFO_STREAM("[gazeboLinkStateCb] n_link=" << n_link);
         int temp_index[n_name];
         for(int i=0; i<n_link; i++){
@@ -70,8 +78,8 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
         mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
         mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
         // Load 
-        loadPos_ = toEigen(msg -> pose[11].position);
-        loadVel_ = toEigen(msg -> twist[11].linear);
+        loadPos_ = toEigen(msg -> pose[10].position);
+        loadVel_ = toEigen(msg -> twist[10].linear);
         // Pendulum
         pendAngle_ = loadPos_ - mavPos_;
         pendAngle_ = pendAngle_ / pendAngle_.norm();
@@ -108,8 +116,8 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
         sls_state_.sls_state[11] = -pendRate_(2);
         sls_state_pub_.publish(sls_state_);   
 
-        /* Publish Control Commands*/
-        exeControl();
+        // /* Publish Control Commands*/
+        // exeControl();
 
         /* Iteration */
         mavPos_prev_ = mavPos_;
@@ -127,14 +135,16 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     double target_force_ned[3];
     double K[10] = {Kpos_x_, Kvel_x_, Kacc_x_, Kjer_x_, Kpos_y_, Kvel_y_, Kacc_y_, Kjer_y_, Kpos_z_, Kvel_z_};
     double param[4] = {load_mass_, mav_mass_, cable_length_, gravity_acc_};
-    double ref[12] = {r_y_, fr_y_, c_y_, ph_y_, r_x_, fr_x_, c_x_, ph_x_, r_z_, fr_z_, -c_z_, ph_z_};
+    double ref[12] = {
+        targetRadium_(1), targetFrequency_(1), targetPos_(1), targetPhase_(1), 
+        targetRadium_(0), targetFrequency_(0), targetPos_(0), targetPhase_(0), 
+        targetRadium_(2), targetFrequency_(2), -targetPos_(2), targetPhase_(2)};
     if(!traj_tracking_enabled_) {
         for(int i=0; i<12; i++){
             if((i+2)%4!=0) ref[i]=0;
         }
     }
     double sls_state_array[12];
-
 
     // for(i=0;i<12;i++){
     //     ROS_INFO_STREAM("K_i" << K[i]);
@@ -149,7 +159,7 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     for(int i=0; i<12;i++){
        sls_state_array[i] = sls_state_.sls_state[i];
     }
-    const double t = ros::Time::now().toSec() - last_stage_.toSec();
+    const double t = ros::Time::now().toSec() - traj_tracking_last_called_.toSec();
     QSFGeometricController(sls_state_array, K, param, ref, t, target_force_ned);
     sls_force_.header.stamp = ros::Time::now();
     sls_force_.sls_force[0] = target_force_ned[0];
@@ -171,8 +181,140 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     return a_des;
 }
 
+void mrotorSlsCtrl::updateReference(){
+    double t = ros::Time::now().toSec();
+    double sp_x = c_x_ + r_x_ * std::sin(fr_x_ * t + ph_x_);
+    double sp_y = c_y_ + r_y_ * std::sin(fr_y_ * t + ph_y_);
+    double sp_z = c_z_ + r_z_ * std::sin(fr_z_ * t + ph_z_);
+    double sp_x_dt = r_x_ * fr_x_ * std::cos(fr_x_ * t + ph_x_);
+    double sp_y_dt = r_y_ * fr_y_ * std::cos(fr_y_ * t + ph_y_);
+    double sp_z_dt = r_z_ * fr_z_ * std::cos(fr_z_ * t + ph_z_);
+
+    if(mission_enabled_){
+        switch(mission_stage_){
+            case 0:
+                if(!mission_initialized_){
+                    ROS_INFO("[exeMission] Mission started at case 0");
+                    mission_initialized_ = true;
+                }
+                targetPos_ << c_x_, c_y_, c_z_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                checkMissionStage(10);
+                break;
+            case 1:
+                targetPos_ << c_x_1_, c_y_1_, c_z_1_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                checkMissionStage(10);
+                break;
+            case 2:
+                targetPos_ << c_x_2_, c_y_2_, c_z_2_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                checkMissionStage(10);
+                break;
+            case 3:
+                targetPos_ << c_x_3_, c_y_3_, c_z_3_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                checkMissionStage(10);
+                break;
+            case 4:
+                targetPos_ << c_x_, c_y_, c_z_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                checkMissionStage(10);
+                break;
+            case 5:
+                targetPos_ << c_x_, c_y_, c_z_; 
+                targetRadium_ << r_x_, r_y_, r_z_;
+                targetFrequency_ << fr_x_, fr_y_, fr_z_;
+                targetPhase_ << ph_x_, ph_y_, ph_z_;
+                traj_tracking_enabled_ = true;
+                checkMissionStage(20);
+                break;
+            default:
+                targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_; 
+                targetRadium_ << 0, 0, 0;
+                targetFrequency_ << 0, 0, 0;
+                targetPhase_ << 0, 0, 0;
+                traj_tracking_enabled_ = false;
+                if(ros::Time::now().toSec() - mission_last_called_.toSec() >= 10){
+                    ROS_INFO("[exeMission] Mission Accomplished");
+                    mission_last_called_ = ros::Time::now();
+                }
+        }
+    }
+
+    else {
+        mission_last_called_ = ros::Time::now();
+        if(mission_stage_ == 5) {
+            traj_tracking_enabled_ = false;
+        }
+        mission_stage_ = 0;
+
+        targetPos_ << c_x_, c_y_, c_z_; 
+        targetRadium_ << r_x_, r_y_, r_z_;
+        targetFrequency_ << fr_x_, fr_y_, fr_z_;
+        targetPhase_ << ph_x_, ph_y_, ph_z_;
+
+
+        // // Entering tracking
+        // if(!last_tracking_state_ && traj_tracking_enabled_ && (mav_num_>1 && (std::abs(mavPos_(0)-sp_x)>0.1 || std::abs(mavPos_(1)-sp_y)>0.1))) {
+        //     targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_;  // Initial Position
+        //     targetVel_ << 0.0, 0.0, 0.0;
+        //     targetJerk_ = Eigen::Vector3d::Zero(); // Not used so just set it to zero  
+        //     // ROS_INFO("1");
+        // }    
+
+        // // Running tracking
+        // else if(last_tracking_state_ && traj_tracking_enabled_) {
+        //     targetPos_ << sp_x, sp_y, sp_z;
+        //     targetVel_ << sp_x_dt, sp_y_dt, sp_z_dt;
+        //     last_tracking_state_ = traj_tracking_enabled_;
+        //     // ROS_INFO("2");
+        // }
+
+        // // Exiting from tracking
+        // else if(last_tracking_state_ && (mav_num_>1 && (std::abs(mavPos_(0)-pos_x_0_)>tracking_exit_min_error_ || std::abs(mavPos_(1)-pos_y_0_)>tracking_exit_min_error_))) {
+        //     targetPos_ << sp_x, sp_y, sp_z;
+        //     targetVel_ << sp_x_dt, sp_y_dt, sp_z_dt;   
+        //     // ROS_INFO("3");     
+        // }
+
+        // // Initial Point
+        // else {
+        //     targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_;  // Initial Position
+        //     targetVel_ << 0.0, 0.0, 0.0;
+        //     targetJerk_ = Eigen::Vector3d::Zero(); // Not used so just set it to zero  
+        //     last_tracking_state_ = traj_tracking_enabled_;
+        //     // ROS_INFO("4");
+        // }
+    }
+}
+
+void mrotorSlsCtrl::checkMissionStage(double mission_time_span) {
+    if(ros::Time::now().toSec() - mission_last_called_.toSec() >= mission_time_span) {
+        mission_last_called_ = ros::Time::now();
+        mission_stage_ += 1;
+        ROS_INFO_STREAM("[exeMission] Stage " << mission_stage_-1 << " ended, switching to stage " << mission_stage_);
+    }
+}
+
 void mrotorSlsCtrl::exeControl(void){
+    printf("SLS Control EXE\n");
     if(init_complete_){
+        if(traj_tracking_enabled_ && !traj_tracking_enabled_last_) {
+            traj_tracking_last_called_ = ros::Time::now();
+        }
+        traj_tracking_enabled_last_ = traj_tracking_enabled_;
+
         Eigen::Vector3d desired_acc;
         desired_acc = applyQuasiSlsCtrl();
         computeBodyRateCmd(cmdBodyRate_, desired_acc);
@@ -187,6 +329,7 @@ void mrotorSlsCtrl::exeControl(void){
     }
 }
 
+
 void mrotorSlsCtrl::viconDrone1Cb(const geometry_msgs::TransformStamped::ConstPtr& msg){
 
 }
@@ -199,3 +342,7 @@ void mrotorSlsCtrl::viconLoad1Cb(const geometry_msgs::TransformStamped::ConstPtr
 
 }
 
+void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
+    /* Publish Control Commands*/
+    mrotorSlsCtrl::exeControl();
+}

@@ -1,37 +1,49 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <enable_lockstep>false</enable_lockstep>
-  <model name='px4vision_sls'>
+  <model name='px4vision_sls_gazebo'>
   <static>false</static>
-  <include>
-    <uri>model://px4vision_ancl</uri>
-  </include>
 
-  <!-- <link name='battery'>
-    <pose>0 0 0.071</pose>
+  <link name='base_link'>
+    <pose>0 0 0 0 -0 0</pose>
     <inertial>
-      <mass>0.6</mass>
+      <pose>0 0 0 0 -0 0</pose>
+      <mass>1.5</mass>
       <inertia>
-        <ixx>0.00021816</ixx>
+        <ixx>0.029125</ixx>
         <ixy>0</ixy>
         <ixz>0</ixz>
-        <iyy>0.0011</iyy>
+        <iyy>0.029125</iyy>
         <iyz>0</iyz>
-        <izz>0.0010</izz>
+        <izz>0.055225</izz>
       </inertia>
     </inertial>
-    <collision name='battery_collision'>
+    <collision name='base_link_inertia_collision'>
+      <pose>0 0 0 0 -0 0</pose>
       <geometry>
         <box>
-          <size>0.138 0.046 0.048</size>
+          <size>0.365 0.365 0.11</size>
         </box>
-      </geometry>      
+      </geometry>
+      <surface>
+        <contact>
+          <ode>
+            <min_depth>0.001</min_depth>
+            <max_vel>0</max_vel>
+          </ode>
+        </contact>
+        <friction>
+          <ode/>
+        </friction>
+      </surface>
     </collision>
-    <visual name='battery_visual'>
+    <visual name='base_link_inertia_visual'>
+      <pose>0 0 0 1.5707 0 -0.01</pose>
       <geometry>
-        <box>
-          <size>0.138 0.046 0.048</size>
-        </box>
+        <mesh>
+          <scale>0.001 0.001 0.001</scale>
+          <uri>model://px4vision/meshes/body.dae</uri>
+        </mesh>
       </geometry>
       <material>
         <script>
@@ -40,10 +52,17 @@
         </script>
       </material>
     </visual>
-  </link> -->
+    <gravity>1</gravity>
+    <velocity_decay/>
+  </link>
+
+  <plugin name='rosbag' filename='libgazebo_multirotor_base_plugin.so'>
+    <robotNamespace/>
+    <linkName>base_link</linkName>
+    <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+  </plugin>
 
   <link name='pendulum'>
-    <!-- <pose>-0.425 0 0 0 1.57 0</pose> -->
     <pose>0 0 -0.425 0 0 0</pose>
     <inertial>
       <mass>0.01</mass>
@@ -56,22 +75,7 @@
         <izz>0.000000005</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='pendulun_collision'>
-      <geometry>
-        <cylinder>
-          <radius>0.01</radius>
-          <length>0.85</length>
-        </cylinder>
-      </geometry>
-      <surface>
-        <contact>
-          <ode/>
-        </contact>
-        <friction>
-          <ode/>
-        </friction>
-      </surface>
-    </collision> -->
+
     <visual name='pendulum_visual'>
       <geometry>
         <cylinder>
@@ -91,7 +95,6 @@
   </link>
 
   <link name='load'>
-    <!-- <pose>-0.85 0 0 0 1.57 0</pose> -->
     <pose>0 0 -0.85 0 0 0</pose>
     <inertial>
       <mass>0.25</mass>
@@ -104,21 +107,7 @@
         <izz>0.0000625</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='load_collision'>
-      <geometry>
-        <sphere>
-          <radius>0.025 0.025 0.025</radius>
-        </sphere>
-      </geometry>
-      <surface>
-        <contact>
-          <ode/>
-        </contact>
-        <friction>
-          <ode/>
-        </friction>
-      </surface>
-    </collision> -->
+
     <visual name='load_visual'>
       <geometry>
         <sphere>
@@ -141,18 +130,13 @@
     <parent>pendulum</parent>
   </joint>
 
-  <joint name='pendulum_joint' type='ball'>
+  <joint name='pendulum_joint' type='universal'>
     <pose>0 0 0.425 0 0 0</pose>
     <child>pendulum</child>
-    <parent>px4vision_ancl::base_link</parent>
+    <parent>base_link</parent>
   </joint>
 
-  <!-- <joint name='battery_joint' type='fixed'>
-    <pose>0 0 0.0 0 0 0</pose>
-    <child>battery</child>
-    <parent>px4vision::base_link</parent>
-  </joint>   -->
-
+  <plugin name="GazeboSlsForceControlPlugin" filename="libgazebo_sls_force_control_plugin.so" />
 
   </model>
 </sdf>

@@ -1,10 +1,10 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <enable_lockstep>false</enable_lockstep>
-  <model name='px4vision_sls'>
+  <model name='iris_sls'>
   <static>false</static>
   <include>
-    <uri>model://px4vision_ancl</uri>
+    <uri>model://iris</uri>
   </include>
 
   <!-- <link name='battery'>
@@ -43,8 +43,7 @@
   </link> -->
 
   <link name='pendulum'>
-    <!-- <pose>-0.425 0 0 0 1.57 0</pose> -->
-    <pose>0 0 -0.425 0 0 0</pose>
+    <pose>-0.425 0 0 0 1.57 0</pose>
     <inertial>
       <mass>0.01</mass>
       <inertia>
@@ -56,7 +55,7 @@
         <izz>0.000000005</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='pendulun_collision'>
+    <collision name='pendulun_collision'>
       <geometry>
         <cylinder>
           <radius>0.01</radius>
@@ -71,7 +70,7 @@
           <ode/>
         </friction>
       </surface>
-    </collision> -->
+    </collision>
     <visual name='pendulum_visual'>
       <geometry>
         <cylinder>
@@ -91,8 +90,7 @@
   </link>
 
   <link name='load'>
-    <!-- <pose>-0.85 0 0 0 1.57 0</pose> -->
-    <pose>0 0 -0.85 0 0 0</pose>
+    <pose>-0.85 0 0 0 1.57 0</pose>
     <inertial>
       <mass>0.25</mass>
       <inertia>
@@ -104,7 +102,7 @@
         <izz>0.0000625</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='load_collision'>
+    <collision name='load_collision'>
       <geometry>
         <sphere>
           <radius>0.025 0.025 0.025</radius>
@@ -118,7 +116,7 @@
           <ode/>
         </friction>
       </surface>
-    </collision> -->
+    </collision>
     <visual name='load_visual'>
       <geometry>
         <sphere>
@@ -141,10 +139,10 @@
     <parent>pendulum</parent>
   </joint>
 
-  <joint name='pendulum_joint' type='ball'>
+  <joint name='pendulum_joint' type='universal'>
     <pose>0 0 0.425 0 0 0</pose>
     <child>pendulum</child>
-    <parent>px4vision_ancl::base_link</parent>
+    <parent>iris::base_link</parent>
   </joint>
 
   <!-- <joint name='battery_joint' type='fixed'>

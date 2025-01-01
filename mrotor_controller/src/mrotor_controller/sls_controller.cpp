@@ -25,7 +25,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     sls_force_pub_ = nh_.advertise<controller_msgs::SlsForce> ("mrotor_sls_controller/sls_force", 1);
 
     /* Timer */
-    cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorSlsCtrl::cmdloopCb, this);  
+    // cmdloop_timer_ = nh_.createTimer(ros::Duration(0.004), &mrotorSlsCtrl::cmdloopCb, this);  
     
     nh_private_.param<double>("cable_length", cable_length_, 0.85);
     nh_private_.param<double>("load_mass", load_mass_, 0.25);
@@ -116,8 +116,8 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
         sls_state_.sls_state[11] = -pendRate_(2);
         sls_state_pub_.publish(sls_state_);   
 
-        // /* Publish Control Commands*/
-        // exeControl();
+        /* Publish Control Commands*/
+        exeControl();
 
         /* Iteration */
         mavPos_prev_ = mavPos_;
@@ -308,7 +308,7 @@ void mrotorSlsCtrl::checkMissionStage(double mission_time_span) {
 }
 
 void mrotorSlsCtrl::exeControl(void){
-    printf("SLS Control EXE\n");
+    // printf("SLS Control EXE\n");
     if(init_complete_){
         if(traj_tracking_enabled_ && !traj_tracking_enabled_last_) {
             traj_tracking_last_called_ = ros::Time::now();
@@ -342,7 +342,7 @@ void mrotorSlsCtrl::viconLoad1Cb(const geometry_msgs::TransformStamped::ConstPtr
 
 }
 
-void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
-    /* Publish Control Commands*/
-    mrotorSlsCtrl::exeControl();
-}
+// void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
+//     /* Publish Control Commands*/
+//     mrotorSlsCtrl::exeControl();
+// }

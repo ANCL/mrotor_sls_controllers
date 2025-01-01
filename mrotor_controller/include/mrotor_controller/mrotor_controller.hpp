@@ -143,7 +143,7 @@ class mrotorCtrl {
     void mavstateCb(const mavros_msgs::State::ConstPtr& msg);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void statusloopCb(const ros::TimerEvent &event);
-    void cmdloopCb(const ros::TimerEvent &event);
+    // void cmdloopCb(const ros::TimerEvent &event);
     void viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig &config, uint32_t level);
     // Helper Functions

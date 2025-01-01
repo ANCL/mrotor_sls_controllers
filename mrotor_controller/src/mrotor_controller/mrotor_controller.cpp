@@ -32,7 +32,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
     /* Timer */
-    cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorCtrl::cmdloopCb, this);  
+    // cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorCtrl::cmdloopCb, this);  
     statusloop_timer_ = nh_.createTimer(ros::Duration(1), &mrotorCtrl::statusloopCb, this);
 
     /* Offboard Rate */
@@ -191,8 +191,8 @@ void mrotorCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg)
         mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
         // mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
         
-        // /* Publish Control Commands*/
-        // exeControl();
+        /* Publish Control Commands*/
+        exeControl();
     }
 }
 
@@ -416,10 +416,10 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     Kvel_ << -Kvel_x_, -Kvel_y_, -Kvel_z_;  
 }
 
-void mrotorCtrl::cmdloopCb(const ros::TimerEvent &event) {
-    /* Publish Control Commands*/
-    exeControl();
-}
+// void mrotorCtrl::cmdloopCb(const ros::TimerEvent &event) {
+//     /* Publish Control Commands*/
+//     exeControl();
+// }
 
 void mrotorCtrl::statusloopCb(const ros::TimerEvent &event) {
     // ROS_INFO_STREAM(diff_t_);

@@ -39,7 +39,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
     };
 
     /* Callback Functions */
-    void cmdloopCb(const ros::TimerEvent &event);
+    // void cmdloopCb(const ros::TimerEvent &event);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void viconDrone1Cb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void viconDrone2Cb(const geometry_msgs::TransformStamped::ConstPtr& msg);

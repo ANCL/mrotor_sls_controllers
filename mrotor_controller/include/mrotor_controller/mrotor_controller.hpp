@@ -106,6 +106,7 @@ class mrotorCtrl {
     bool qsf_geo_ctrl_enabled_ = false;
     bool mission_enabled_ = false;
     bool mission_initialized_ = false;
+    bool cmdloop_enabled_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links
@@ -143,7 +144,7 @@ class mrotorCtrl {
     void mavstateCb(const mavros_msgs::State::ConstPtr& msg);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void statusloopCb(const ros::TimerEvent &event);
-    // void cmdloopCb(const ros::TimerEvent &event);
+    void cmdloopCb(const ros::TimerEvent &event);
     void viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig &config, uint32_t level);
     // Helper Functions

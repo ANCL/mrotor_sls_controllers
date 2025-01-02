@@ -35,11 +35,10 @@ class mrotorSlsCtrl: public mrotorCtrl {
 
     const char* gazebo_link_name_[1] = {
       "px4vision_0::px4vision_ancl::base_link", 
-      // "iris_0::iris::base_link"
     };
 
     /* Callback Functions */
-    // void cmdloopCb(const ros::TimerEvent &event);
+    void cmdloopCb(const ros::TimerEvent &event);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void viconDrone1Cb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void viconDrone2Cb(const geometry_msgs::TransformStamped::ConstPtr& msg);

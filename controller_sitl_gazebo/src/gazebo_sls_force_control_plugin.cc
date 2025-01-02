@@ -32,6 +32,7 @@ private:
     double K_[10] = {24, 50, 35, 10, 24, 50, 35, 10, 2, 3};
     double param_[4] = {0.25, 1.51, 0.85, 9.80665};
     double target_force_ned_[3] = {};
+    bool inner_loop_enabled_ = true;
 
     // >>> Mission Stages
     int mission_stage_ = 0;
@@ -182,8 +183,7 @@ public:
             std::bind(&SlsForceControlPlugin::OnUpdate, this));
     }
 
-    void OnUpdate()
-    {
+    void OnUpdate() {
         // Retrieve base link (quadrotor) states
         mavPos_ = baseLink->WorldPose().Pos();
         mavVel_ = baseLink->WorldLinearVel();
@@ -278,7 +278,12 @@ public:
         sls_force_pub_.publish(sls_force_);
 
         ignition::math::Vector3d controlForce(target_force_ned_[1], target_force_ned_[0], -target_force_ned_[2]);
-        this->baseLink->AddForce(controlForce);
+
+
+        if(!inner_loop_enabled_){
+            this->baseLink->AddForce(controlForce);
+        }
+        
 
         // // Retrieve quadrotor orientation in roll, pitch, yaw
         // roll = quadOrientation.Roll();
@@ -360,13 +365,16 @@ public:
         }
     }
 
-    ~SlsForceControlPlugin()
-    {
+
+
+    ~SlsForceControlPlugin() {
         // if (logTxtFile.is_open())
         // {
         //     logTxtFile.close();
         // }
     }
+
+
 };
 
 // Register the plugin with Gazebo

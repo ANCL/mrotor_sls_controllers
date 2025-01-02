@@ -32,7 +32,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     set_mode_client_ = nh_.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
 
     /* Timer */
-    // cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorCtrl::cmdloopCb, this);  
+    cmdloop_timer_ = nh_.createTimer(ros::Duration(0.001), &mrotorCtrl::cmdloopCb, this);  
     statusloop_timer_ = nh_.createTimer(ros::Duration(1), &mrotorCtrl::statusloopCb, this);
 
     /* Offboard Rate */
@@ -48,6 +48,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<bool>("sim_enabled", sim_enabled_, true);
     nh_private_.param<bool>("finite_diff_enabled", finite_diff_enabled_, true);
     nh_private_.param<bool>("mission_enabled", mission_enabled_, false);
+    nh_private_.param<bool>("cmdloop_enabled", cmdloop_enabled_, false);
     // drone physical constants
     nh_private_.param<double>("mav_mass", mav_mass_, 1.56);    
     nh_private_.param<double>("max_acc", max_fb_acc_, 9.0);
@@ -191,8 +192,10 @@ void mrotorCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg)
         mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
         // mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
         
-        /* Publish Control Commands*/
-        exeControl();
+        if(!cmdloop_enabled_) {
+            /* Publish Control Commands*/
+            exeControl();            
+        }
     }
 }
 
@@ -239,6 +242,11 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     else if(mission_enabled_ != config.mission_enabled) {
         mission_enabled_ = config.mission_enabled;
         ROS_INFO("Reconfigure request : mission_enabled = %s ", mission_enabled_ ? "true" : "false");
+    } 
+
+    else if(cmdloop_enabled_ != config.cmdloop_enabled) {
+        cmdloop_enabled_ = config.cmdloop_enabled;
+        ROS_INFO("Reconfigure request : cmdloop_enabled = %s ", cmdloop_enabled_ ? "true" : "false");
     } 
 
     /* Max Acceleration*/
@@ -416,10 +424,12 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     Kvel_ << -Kvel_x_, -Kvel_y_, -Kvel_z_;  
 }
 
-// void mrotorCtrl::cmdloopCb(const ros::TimerEvent &event) {
-//     /* Publish Control Commands*/
-//     exeControl();
-// }
+void mrotorCtrl::cmdloopCb(const ros::TimerEvent &event) {
+    if(cmdloop_enabled_) {
+        /* Publish Control Commands*/
+        exeControl();        
+    }
+}
 
 void mrotorCtrl::statusloopCb(const ros::TimerEvent &event) {
     // ROS_INFO_STREAM(diff_t_);

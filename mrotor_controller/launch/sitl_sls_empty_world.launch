@@ -7,7 +7,7 @@
     <arg name="gui" default="true"/>
     <arg name="debug" default="false"/>
     <arg name="verbose" default="false"/>
-    <arg name="paused" default="true"/>
+    <arg name="paused" default="false"/>
     <arg name="respawn_gazebo" default="false"/>
     <arg name="world" default="$(find controller_sitl_gazebo)/worlds/empty.world"/>
 

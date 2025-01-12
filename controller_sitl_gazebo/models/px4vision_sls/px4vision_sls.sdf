@@ -94,6 +94,7 @@
     <!-- <pose>-0.85 0 0 0 1.57 0</pose> -->
     <pose>0 0 -0.85 0 0 0</pose>
     <inertial>
+      <!-- <mass>0.25</mass> -->
       <mass>0.25</mass>
       <inertia>
         <ixx>0.0000625</ixx>

@@ -49,6 +49,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<bool>("finite_diff_enabled", finite_diff_enabled_, true);
     nh_private_.param<bool>("mission_enabled", mission_enabled_, false);
     nh_private_.param<bool>("cmdloop_enabled", cmdloop_enabled_, false);
+    nh_private_.param<bool>("drag_comp_enabled", drag_comp_enabled_, false);
     // drone physical constants
     nh_private_.param<double>("mav_mass", mav_mass_, 1.56);    
     nh_private_.param<double>("max_acc", max_fb_acc_, 9.0);
@@ -102,6 +103,11 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<double>("pos_z_0", pos_z_0_, 1.0);     
     // tolerance
     nh_private_.param<double>("tracking_exit_min_error", tracking_exit_min_error_, 0.5); 
+    // rotor drag compensation
+    nh_private_.param<double>("rotor_drag_d_x", rotorDragD_x_, 0.0);
+    nh_private_.param<double>("rotor_drag_d_y", rotorDragD_y_, 0.0);
+    nh_private_.param<double>("rotor_drag_d_z", rotorDragD_z_, 0.0);
+
 
     /* Send some set-points before starting*/
     // for(int i = 100; ros::ok() && i > 0; --i){
@@ -126,7 +132,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     ROS_INFO_STREAM("[mrotorCtrl] Initialization Complete");
     init_complete_ = true;
     gazebo_last_called_ = ros::Time::now();
-    vicon_last_called_ = ros::Time::now();
+    vicon_drone_last_called_ = ros::Time::now();
     mission_last_called_ = ros::Time::now();
 }
 
@@ -201,8 +207,8 @@ void mrotorCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg)
 
 void mrotorCtrl::viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     // ROS_INFO_STREAM("Vicon Mrotor Cb");
-    diff_t_ = ros::Time::now().toSec() - vicon_last_called_.toSec(); 
-    vicon_last_called_ = ros::Time::now();
+    diff_t_ = ros::Time::now().toSec() - vicon_drone_last_called_.toSec(); 
+    vicon_drone_last_called_ = ros::Time::now();
     mavPos_ = toEigen(msg -> transform.translation);
     if(diff_t_ > 0) {
         mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
@@ -247,6 +253,11 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     else if(cmdloop_enabled_ != config.cmdloop_enabled) {
         cmdloop_enabled_ = config.cmdloop_enabled;
         ROS_INFO("Reconfigure request : cmdloop_enabled = %s ", cmdloop_enabled_ ? "true" : "false");
+    } 
+
+    else if(drag_comp_enabled_ != config.drag_comp_enabled) {
+        drag_comp_enabled_ = config.drag_comp_enabled;
+        ROS_INFO("Reconfigure request : drag_comp_enabled_ = %s ", drag_comp_enabled_ ? "true" : "false");
     } 
 
     /* Max Acceleration*/
@@ -419,6 +430,19 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
         c_z_3_ = config.c_z_3;
         ROS_INFO("Reconfigure request : c_z_3 = %.3f ", c_z_3_);
     }
+    // rotor drag compensation
+    else if(rotorDragD_x_ != config.rotor_drag_d_x) {
+        rotorDragD_x_ = config.rotor_drag_d_x;
+        ROS_INFO("Reconfigure request : rotor_drag_d_x = %.3f ", rotorDragD_x_);
+    }
+    else if(rotorDragD_y_ != config.rotor_drag_d_y) {
+        rotorDragD_y_ = config.rotor_drag_d_y;
+        ROS_INFO("Reconfigure request : rotor_drag_d_y = %.3f ", rotorDragD_y_);
+    }
+    else if(rotorDragD_z_ != config.rotor_drag_d_z) {
+        rotorDragD_z_ = config.rotor_drag_d_z;
+        ROS_INFO("Reconfigure request : rotor_drag_d_z = %.3f ", rotorDragD_z_);
+    }
 
     Kpos_ << -Kpos_x_, -Kpos_y_, -Kpos_z_;
     Kvel_ << -Kvel_x_, -Kvel_y_, -Kvel_z_;  
@@ -522,11 +546,14 @@ Eigen::Vector3d mrotorCtrl::applyIOSFBLCtrl(const Eigen::Vector3d &target_pos, c
 
 void mrotorCtrl::computeBodyRateCmd(Eigen::Vector4d &bodyrate_cmd, const Eigen::Vector3d &a_des) {
     // Reference attitude
-    q_des = acc2quaternion(a_des, mavYaw_);
-    controller_ -> Update(mavAtt_, q_des, a_des, targetJerk_);  // Calculate BodyRate
+    q_des_ = acc2quaternion(a_des, mavYaw_);
+    controller_ -> Update(mavAtt_, q_des_, a_des, targetJerk_);  // Calculate BodyRate
     bodyrate_cmd.head(3) = controller_->getDesiredRate();
     double thrust_command = controller_->getDesiredThrust().z();
+    ROS_INFO_STREAM("thrust_command: " << thrust_command);
     bodyrate_cmd(3) = std::max(0.0, std::min(1.0, norm_thrust_const_ * thrust_command + norm_thrust_offset_));  
+    ROS_INFO_STREAM("norm_thrust: " << bodyrate_cmd(3));
+    
     //[bug]// controller_->getDesiredThrust()(3); // Calculate thrust 
 }
 
@@ -623,11 +650,11 @@ void mrotorCtrl::exeControl() {
         desired_acc = applyIOSFBLCtrl(targetPos_, targetVel_);
         computeBodyRateCmd(cmdBodyRate_, desired_acc);
         if(ctrl_enabled_){
-            pubRateCommands(cmdBodyRate_, q_des);
+            pubRateCommands(cmdBodyRate_, q_des_);
         }
         else{
             pubTargetPose(pos_x_0_, pos_y_0_, pos_z_0_);
-            debugRateCommands(cmdBodyRate_, q_des);
+            debugRateCommands(cmdBodyRate_, q_des_);
         }
         updateReference();
     }

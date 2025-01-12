@@ -56,7 +56,7 @@ class mrotorCtrl {
 
     /* ROS Times */
     ros::Time last_request_, last_stage_;
-    ros::Time gazebo_last_called_, vicon_last_called_, mission_last_called_, traj_tracking_last_called_;
+    ros::Time gazebo_last_called_, vicon_drone_last_called_, mission_last_called_, traj_tracking_last_called_, cmdloop_last_called_;
 
     /* Messages */
     mavros_msgs::State mav_state_;
@@ -66,17 +66,22 @@ class mrotorCtrl {
     /* Vectors */
     Eigen::Vector3d mavPos_, mavVel_, mavRate_;
     Eigen::Vector3d mavPos_prev_, mavVel_prev_, mavRate_prev_;
-    Eigen::Vector4d mavAtt_, q_des;
+    Eigen::Vector4d mavAtt_, mavAtt_prev_, q_des_;
     double mavYaw_;
     Eigen::Vector3d targetJerk_;
-    Eigen::Vector3d gravity_{Eigen::Vector3d(0.0, 0.0, -9.8)};
-    Eigen::Vector3d Kpos_, Kvel_, D_;
+    Eigen::Vector3d gravity_{Eigen::Vector3d(0.0, 0.0, -9.80665)};
+    Eigen::Vector3d Kpos_, Kvel_;
     double Kpos_x_, Kpos_y_, Kpos_z_, Kvel_x_, Kvel_y_, Kvel_z_, Kacc_x_, Kacc_y_, Kacc_z_, Kjer_x_, Kjer_y_, Kjer_z_;
     double pos_x_0_, pos_y_0_, pos_z_0_;
     // Control Targets
     Eigen::Vector3d targetPos_, targetVel_, targetAcc_, targetJer_, targetSna_;
     // Control Commands
     Eigen::Vector4d cmdBodyRate_;  //{wx, wy, wz, Thrust}
+    // Rotor Drag Compensation
+    double rotorDragD_x_;
+    double rotorDragD_y_;
+    double rotorDragD_z_;  
+    Eigen::Vector3d rotorDragD_;
 
     /* MAV_STATE */
     MAV_STATE companion_state_ = MAV_STATE::MAV_STATE_ACTIVE;      
@@ -107,6 +112,7 @@ class mrotorCtrl {
     bool mission_enabled_ = false;
     bool mission_initialized_ = false;
     bool cmdloop_enabled_ = false;
+    bool drag_comp_enabled_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links

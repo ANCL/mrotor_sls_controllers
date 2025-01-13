@@ -4,7 +4,7 @@
         <arg name="mav_id" default="2"/>
         <arg name="mav_name" default="px4vision"/>
         <arg name="sim_enabled" default="true"/>
-        <arg name="ctrl_enabled" default="true"/>
+        <arg name="ctrl_enabled" default="false"/>
         <arg name="rate_ctrl_enabled" default="true"/>
         <arg name="traj_tracking_enabled" default="false"/>
         <arg name="finite_diff_enabled" default="false"/>

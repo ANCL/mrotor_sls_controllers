@@ -550,9 +550,9 @@ void mrotorCtrl::computeBodyRateCmd(Eigen::Vector4d &bodyrate_cmd, const Eigen::
     controller_ -> Update(mavAtt_, q_des_, a_des, targetJerk_);  // Calculate BodyRate
     bodyrate_cmd.head(3) = controller_->getDesiredRate();
     double thrust_command = controller_->getDesiredThrust().z();
-    ROS_INFO_STREAM("thrust_command: " << thrust_command);
+    // ROS_INFO_STREAM("thrust_command: " << thrust_command);
     bodyrate_cmd(3) = std::max(0.0, std::min(1.0, norm_thrust_const_ * thrust_command + norm_thrust_offset_));  
-    ROS_INFO_STREAM("norm_thrust: " << bodyrate_cmd(3));
+    // ROS_INFO_STREAM("norm_thrust: " << bodyrate_cmd(3));
     
     //[bug]// controller_->getDesiredThrust()(3); // Calculate thrust 
 }

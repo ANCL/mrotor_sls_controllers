@@ -22,7 +22,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
     ros::Time vicon_load_last_called_;
 
     /* Vectors */
-    Eigen::Vector3d loadPos_, loadVel_;
+    Eigen::Vector3d loadPos_, loadVel_, loadAcc_;
     Eigen::Vector3d loadPos_prev_, loadVel_prev_, loadAcc_prev_;
     Eigen::Vector3d loadPosTarget_, loadVelTarget_;
     double loadPosTarget_x_, loadPosTarget_y_, loadPosTarget_z_;

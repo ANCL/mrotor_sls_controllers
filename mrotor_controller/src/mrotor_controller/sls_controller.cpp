@@ -3,6 +3,8 @@
 
 /*================================================================= SLS Controller =================================================================*/
 
+#define FD_EPSILON DBL_MIN
+
 mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private): mrotorCtrl(nh, nh_private) {
     // ROS_INFO_STREAM(gravity_acc_);
 
@@ -96,11 +98,9 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
 
             pubSlsState();  
 
-            applyIteration();
-
             exeControl(); 
 
-            ROS_INFO_STREAM("loadpose_err: " << loadPos_(2) - 1.0);
+            // ROS_INFO_STREAM("loadpose_err: " << loadPos_(2) - 1.0);
         }
     }
 }
@@ -139,7 +139,7 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     sls_force_.sls_force[1] = target_force_ned[1];
     sls_force_.sls_force[2] = target_force_ned[2];
     sls_force_pub_.publish(sls_force_);
-    ROS_INFO_STREAM("SLS Force: " << target_force_ned[2]);
+    // ROS_INFO_STREAM("SLS Force: " << target_force_ned[2]);
     Eigen::Vector3d a_des;
     a_des(0) = target_force_ned[1] / mav_mass_;
     a_des(1) = target_force_ned[0] / mav_mass_;
@@ -331,8 +331,6 @@ void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
 
         pubSlsState();  
 
-        applyIteration();
-
         exeControl(); 
     }
 }
@@ -365,33 +363,29 @@ Eigen::Vector3d mrotorSlsCtrl::transformPose(Eigen::Vector3d oldPose, Eigen::Vec
 Eigen::Vector3d mrotorSlsCtrl::compensateRotorDrag(double t) {
     bool use_feedback = true;
     // mav vel ref
-    Eigen::Vector3d loadVelRDC, loadAccRDC;
+    Eigen::Vector3d loadVelRDC, loadAccRDC, loadVelFF, loadAccFF, loadVelFB, loadAccFB;
+    loadVelFF(0) = targetRadium_(0) * targetFrequency_(0) * std::cos(targetFrequency_(0) * t + targetPhase_(0));
+    loadVelFF(1) = targetRadium_(1) * targetFrequency_(1) * std::cos(targetFrequency_(1) * t + targetPhase_(1));
+    loadVelFF(2) = targetRadium_(2) * targetFrequency_(2) * std::cos(targetFrequency_(2) * t + targetPhase_(2));
+    loadAccFF(0) = -targetRadium_(0) * std::pow(targetFrequency_(0), 2) * std::sin(targetFrequency_(0) * t + targetPhase_(0));
+    loadAccFF(1) = -targetRadium_(1) * std::pow(targetFrequency_(1), 2) * std::sin(targetFrequency_(1) * t + targetPhase_(1));
+    loadAccFF(2) = -targetRadium_(2) * std::pow(targetFrequency_(2), 2) * std::sin(targetFrequency_(2) * t + targetPhase_(2));
+    loadVelFB = loadVel_;
+    loadAccFB = loadAcc_;
+
     if(traj_tracking_enabled_) {
-        loadVelRDC(0) = targetRadium_(0) * targetFrequency_(0) * std::cos(targetFrequency_(0) * t + targetPhase_(0));
-        loadVelRDC(1) = targetRadium_(1) * targetFrequency_(1) * std::cos(targetFrequency_(1) * t + targetPhase_(1));
-        loadVelRDC(2) = targetRadium_(2) * targetFrequency_(2) * std::cos(targetFrequency_(2) * t + targetPhase_(2));
-        loadAccRDC(0) = -targetRadium_(0) * std::pow(targetFrequency_(0), 2) * std::sin(targetFrequency_(0) * t + targetPhase_(0));
-        loadAccRDC(1) = -targetRadium_(1) * std::pow(targetFrequency_(1), 2) * std::sin(targetFrequency_(1) * t + targetPhase_(1));
-        loadAccRDC(2) = -targetRadium_(2) * std::pow(targetFrequency_(2), 2) * std::sin(targetFrequency_(2) * t + targetPhase_(2));
+        loadVelRDC = loadVelFF;
+        loadAccRDC = loadAccFF;
     }
     else if(use_feedback) {
-        loadVelRDC = loadVel_;
-        if(diff_t_ > DBL_MIN) {
-            loadAccRDC = (loadVel_ - loadVel_prev_) / diff_t_;
-        } else {
-            loadAccRDC = loadAcc_prev_;
-        }
+        loadVelRDC = loadVelFB;
+        loadAccRDC = loadAccFB;
     }
     else {
         loadVelRDC = Eigen::Vector3d::Zero();
         loadAccRDC = Eigen::Vector3d::Zero();
     }
     
-    if(diff_t_ > DBL_MIN) {
-        pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
-    } else {
-        pendAngularAcc_ = pendAngularAcc_prev_;
-    }
     const Eigen::Vector3d mavVelRef = transformPose(loadVelRDC, -pendRate_);
     const Eigen::Vector3d mavAccRef = transformPose(loadAccRDC, -pendAngularAcc_);
 
@@ -405,9 +399,6 @@ Eigen::Vector3d mrotorSlsCtrl::compensateRotorDrag(double t) {
     // Rotor Drag compensation
     const Eigen::Vector3d a_rd = -R_ref * rotorDragD_.asDiagonal() * R_ref.transpose() * mavVelRef;  // Rotor drag
 
-    // Iteration
-    pendAngularAcc_prev_ = pendAngularAcc_;
-    loadAcc_prev_ = loadAccRDC;
 
     // ROS_INFO_STREAM(a_rd);
 
@@ -441,32 +432,45 @@ void mrotorSlsCtrl::applyIteration(void) {
     mavRate_prev_ = mavRate_;
     loadPos_prev_ = loadPos_;
     loadVel_prev_ = loadVel_;
+    loadAcc_prev_ = loadAcc_;
     pendAngle_prev_ = pendAngle_;
     pendRate_prev_ = pendRate_;
+    pendAngularAcc_prev_ = pendAngularAcc_;
 }
 
 void mrotorSlsCtrl::applyFiniteDiffSys(void) {
-    ROS_INFO_STREAM("diff_t: " << diff_t_);
+    // ROS_INFO_STREAM("diff_t: " << diff_t_);
     // ROS_INFO_STREAM("cmdloop: " << cmdloop_enabled_);
     const Eigen::Vector4d inverse(1.0, -1.0, -1.0, -1.0);
     const Eigen::Vector4d q_inv = inverse.asDiagonal() * mavAtt_prev_;
     const Eigen::Vector4d qe = quatMultiplication(q_inv, mavAtt_);
 
-    if(diff_t_ > DBL_MIN) {
+    if(diff_t_ > FD_EPSILON) {
         mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
         loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
+        loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
         mavRate_(0) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(1);
         mavRate_(1) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(2);
         mavRate_(2) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(3);
         pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
+        pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
+
+        applyIteration();
     }
 
     else {
+        // printf("diff_t_: %.8f", diff_t_);
+        // ROS_INFO_STREAM(mavPos_ - mavPos_prev_); 
+        // ROS_INFO_STREAM(loadPos_ - loadPos_prev_);
         mavVel_ = mavVel_prev_;
         mavRate_ = mavRate_prev_;
         loadVel_ = loadVel_prev_;
+        loadAcc_ = loadAcc_prev_;
         pendRate_ = pendRate_prev_;
+        pendAngularAcc_ = pendAngularAcc_prev_;
     }
+
+    // if(diff_t_ != 0.004) ROS_INFO_STREAM("FD: Time interval varied!" << mavVel_prev_ << "" << mavVel_);
 }
 
 void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
@@ -485,10 +489,6 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
     diff_t_ = ros::Time::now().toSec() - vicon_drone_last_called_.toSec(); 
     vicon_drone_last_called_ = ros::Time::now();
     mavPos_ = toEigen(msg -> transform.translation);
-    if(diff_t_ > 0) {
-        mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
-    }
-    mavPos_prev_ = mavPos_;
     mavAtt_(0) = msg -> transform.rotation.w;
     mavAtt_(1) = msg -> transform.rotation.x;
     mavAtt_(2) = msg -> transform.rotation.y;
@@ -499,12 +499,5 @@ void mrotorSlsCtrl::readViconLoadPose(const geometry_msgs::TransformStamped::Con
     diff_t_ = ros::Time::now().toSec() - vicon_load_last_called_.toSec(); 
     vicon_load_last_called_ = ros::Time::now();
     loadPos_ = toEigen(msg -> transform.translation);
-    if(diff_t_ > 0) {
-        loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
-    }
-    loadPos_prev_ = loadPos_;
-//     loadAtt_(0) = msg -> transform.rotation.w;
-//     loadAtt_(1) = msg -> transform.rotation.x;
-//     loadAtt_(2) = msg -> transform.rotation.y;
-//     loadAtt_(3) = msg -> transform.rotation.z;  
+    applyFiniteDiffSys();
 }

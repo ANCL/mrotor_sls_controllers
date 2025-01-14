@@ -19,7 +19,7 @@
         <arg name="rotor_drag_d_y" default="0.00"/>
         <arg name="rotor_drag_d_z" default="0.00"/>
         <arg name="mav_mass" default="1.55"/>
-        <arg name="load_mass" default="0.10"/>
+        <arg name="load_mass" default="0.244"/>
 
         <node pkg="mrotor_controller" type="node" name="mrotor_controller" output="screen">
             <param name="mav_num" type="int" value="$(arg mav_num)" />
@@ -37,22 +37,35 @@
             <param name="cable_length" value="0.85"/>
             <param name="load_mass" value="$(arg load_mass)"/> 
             <param name="attctrl_tau" value="0.1" />
-            <param name="normalized_thrust_constant" value="0.044"/>
+            <param name="normalized_thrust_constant" value="0.0435"/>
             <param name="normalized_thrust_offset" value="0.0"/>
-            <param name="Kp_x" value="24.0" />
+
+            <!-- <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
             <param name="Kp_z" value="2.0" />
-            <!-- <param name="Kp_z" value="10.0" /> -->
             <param name="Kv_x" value="50.0"/>
             <param name="Kv_y" value="50.0"/>
             <param name="Kv_z" value="3.0"/>
-            <!-- <param name="Kv_z" value="10.9545"/> -->
             <param name="Ka_x" value="35.0" />
             <param name="Ka_y" value="35.0" />
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="10.0"/>
             <param name="Kj_y" value="10.0"/>
+            <param name="Kj_z" value="0.0"/> -->
+
+            <param name="Kp_x" value="22.0" />
+            <param name="Kp_y" value="22.0" />
+            <param name="Kp_z" value="2.0" />
+            <param name="Kv_x" value="40.0"/>
+            <param name="Kv_y" value="40.0"/>
+            <param name="Kv_z" value="3.0"/>
+            <param name="Ka_x" value="23.0" />
+            <param name="Ka_y" value="23.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="7.0"/>
+            <param name="Kj_y" value="7.0"/>
             <param name="Kj_z" value="0.0"/>
+
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
             <param name="c_z" value="0.4"/>

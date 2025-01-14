@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <group ns="drone1">
+    <group ns="drone2">
         <arg name="mav_id" default="2"/>
         <arg name="mav_name" default="px4vision"/>
         <arg name="sim_enabled" default="true"/>
@@ -13,11 +13,13 @@
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
-        <arg name="pos_z_0" default="1.0"/>
+        <arg name="pos_z_0" default="1.25"/>
         <arg name="tracking_exit_min_error" default="0.5"/>
-        <arg name="rotor_drag_d_x" default="1.25"/>
-        <arg name="rotor_drag_d_y" default="1.25"/>
-        <arg name="rotor_drag_d_z" default="0.0"/>
+        <arg name="rotor_drag_d_x" default="0.00"/>
+        <arg name="rotor_drag_d_y" default="0.00"/>
+        <arg name="rotor_drag_d_z" default="0.00"/>
+        <arg name="mav_mass" default="1.55"/>
+        <arg name="load_mass" default="0.10"/>
 
         <node pkg="mrotor_controller" type="node" name="mrotor_controller" output="screen">
             <param name="mav_num" type="int" value="$(arg mav_num)" />
@@ -31,12 +33,12 @@
             <param name="mission_enabled" value="$(arg mission_enabled)" />
             <param name="drag_comp_enabled" value="$(arg drag_comp_enabled)" />
             <param name="max_acc" value="20.0" />
-            <param name="mav_mass" value="1.56" />
+            <param name="mav_mass" value="$(arg mav_mass)" />
             <param name="cable_length" value="0.85"/>
-            <param name="load_mass" value="0.25"/> 
+            <param name="load_mass" value="$(arg load_mass)"/> 
             <param name="attctrl_tau" value="0.1" />
-            <param name="normalized_thrust_constant" value="0.034436"/>
-            <param name="normalized_thrust_offset" value="0.14344"/>
+            <param name="normalized_thrust_constant" value="0.044"/>
+            <param name="normalized_thrust_offset" value="0.0"/>
             <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
             <param name="Kp_z" value="2.0" />
@@ -53,7 +55,7 @@
             <param name="Kj_z" value="0.0"/>
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
-            <param name="c_z" value="1.0"/>
+            <param name="c_z" value="0.4"/>
             <param name="r_x" value="1.0"/>
             <param name="r_y" value="1.0"/>
             <param name="r_z" value="0.0"/>

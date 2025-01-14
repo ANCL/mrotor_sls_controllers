@@ -44,7 +44,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
     void cmdloopCb(const ros::TimerEvent &event);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void viconDrone1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
-    void viconDrone2Cb(const geometry_msgs::TransformStamped::ConstPtr& msg);
+    void viconDrone2PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void viconLoad1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
 
     /* Helper Functions */

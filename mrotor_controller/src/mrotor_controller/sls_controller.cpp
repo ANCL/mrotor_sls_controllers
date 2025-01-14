@@ -15,7 +15,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
             vicon_sub_ = nh_.subscribe<geometry_msgs::TransformStamped> ("/vicon/px4vision_1/px4vision_1", 1000, &mrotorSlsCtrl::viconDrone1PoseCb, this, ros::TransportHints().tcpNoDelay()); 
             break;
         case 2:
-            vicon_sub_ = nh_.subscribe<geometry_msgs::TransformStamped> ("/vicon/px4vision_2/px4vision_2", 1000, &mrotorSlsCtrl::viconDrone2Cb, this, ros::TransportHints().tcpNoDelay()); 
+            vicon_sub_ = nh_.subscribe<geometry_msgs::TransformStamped> ("/vicon/px4vision_2/px4vision_2", 1000, &mrotorSlsCtrl::viconDrone2PoseCb, this, ros::TransportHints().tcpNoDelay()); 
             break;
         default: 
             break;
@@ -314,10 +314,6 @@ void mrotorSlsCtrl::exeControl(void){
 }
 
 
-void mrotorSlsCtrl::viconDrone2Cb(const geometry_msgs::TransformStamped::ConstPtr& msg){
-
-}
-
 
 
 void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
@@ -479,25 +475,42 @@ void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::Con
     exeControl();
 }
 
+void mrotorSlsCtrl::viconDrone2PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
+    // ROS_INFO_STREAM("Vicon Drone2 Cb");
+    readViconDronePose(msg);
+    exeControl();
+}
+
 void mrotorSlsCtrl::viconLoad1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg){
-    ROS_INFO_STREAM("Vicon Load1 Cb");
+    // ROS_INFO_STREAM("Vicon Load1 Cb");
     readViconLoadPose(msg);
 }
 
 
 void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::ConstPtr& msg) {
+    
     diff_t_ = ros::Time::now().toSec() - vicon_drone_last_called_.toSec(); 
     vicon_drone_last_called_ = ros::Time::now();
+    // ROS_INFO_STREAM("diff_t_: " << diff_t_);
+
     mavPos_ = toEigen(msg -> transform.translation);
     mavAtt_(0) = msg -> transform.rotation.w;
     mavAtt_(1) = msg -> transform.rotation.x;
     mavAtt_(2) = msg -> transform.rotation.y;
     mavAtt_(3) = msg -> transform.rotation.z;  
+
+    // >>> Debug
+    // loadPos_ = mavPos_;
+    // loadPos_(2) += -0.85;
+
+    pendAngle_ = loadPos_ - mavPos_;
+    pendAngle_ = pendAngle_ / pendAngle_.norm();
+
+    applyFiniteDiffSys();
+    pubSlsState();
+    exeControl(); 
 }
 
 void mrotorSlsCtrl::readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg) {
-    diff_t_ = ros::Time::now().toSec() - vicon_load_last_called_.toSec(); 
-    vicon_load_last_called_ = ros::Time::now();
     loadPos_ = toEigen(msg -> transform.translation);
-    applyFiniteDiffSys();
 }

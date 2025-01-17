@@ -52,12 +52,30 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     // load_vel_tau_down_ = 0.1592;
     // load_vel_filter_ = new FirstOrderFilter(load_vel_tau_up_, load_vel_tau_down_, loadVel_);
 
+
+    double mav_pose_cutoff_freq;
+    double mav_pose_q;
+    bool mav_pose_verbose;
+    nh_private_.param<double>("mav_pose_cutoff_freq", mav_pose_cutoff_freq, 30);
+    nh_private_.param<double>("mav_pose_q", mav_pose_q, 0.625);
+    nh_private_.param<bool>("mav_pose_verbose", mav_pose_verbose, false);
+    mav_pose_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(mav_pose_cutoff_freq, mav_pose_q, mav_pose_verbose));
+
+    double mav_vel_cutoff_freq;
+    double mav_vel_q;
+    bool mav_vel_verbose;
+    nh_private_.param<double>("mav_vel_cutoff_freq", mav_vel_cutoff_freq, 30);
+    nh_private_.param<double>("mav_vel_q", mav_vel_q, 0.625);
+    nh_private_.param<bool>("mav_vel_verbose", mav_vel_verbose, false);
+    mav_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(mav_vel_cutoff_freq, mav_vel_q, mav_vel_verbose));
+
     double load_pose_cutoff_freq;
     double load_pose_q;
     bool load_pose_verbose;
     nh_private_.param<double>("load_pose_cutoff_freq", load_pose_cutoff_freq, 30);
     nh_private_.param<double>("load_pose_q", load_pose_q, 0.625);
     nh_private_.param<bool>("load_pose_verbose", load_pose_verbose, false);
+    load_pose_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_pose_cutoff_freq, load_pose_q, load_pose_verbose));
 
     double pend_angle_cutoff_freq;
     double pend_angle_q;
@@ -65,6 +83,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     nh_private_.param<double>("pend_angle_cutoff_freq", pend_angle_cutoff_freq, 30);
     nh_private_.param<double>("pend_angle_q", pend_angle_q, 0.625);
     nh_private_.param<bool>("pend_angle_verbose", pend_angle_verbose, false);
+    pend_angle_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_angle_cutoff_freq, pend_angle_q, pend_angle_verbose));
 
     double load_vel_cutoff_freq;
     double load_vel_q;
@@ -72,6 +91,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     nh_private_.param<double>("load_vel_cutoff_freq", load_vel_cutoff_freq, 30);
     nh_private_.param<double>("load_vel_q", load_vel_q, 0.625);
     nh_private_.param<bool>("load_vel_verbose", load_vel_verbose, false);
+    load_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, load_vel_q, load_vel_verbose));
 
     double pend_rate_cutoff_freq;
     double pend_rate_q;
@@ -79,11 +99,8 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     nh_private_.param<double>("pend_rate_cutoff_freq", pend_rate_cutoff_freq, 30);
     nh_private_.param<double>("pend_rate_q", pend_rate_q, 0.625);
     nh_private_.param<bool>("pend_rate_verbose", pend_rate_verbose, false);
-
-    load_pose_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_pose_cutoff_freq, load_pose_q, load_pose_verbose));
-    pend_angle_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_angle_cutoff_freq, pend_angle_q, pend_angle_verbose));
-    load_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, load_vel_q, load_vel_verbose));
-    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_rate_cutoff_freq, pend_rate_q, pend_rate_verbose));
+    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_rate_cutoff_freq, pend_rate_q, pend_rate_verbose));    
+    
 }
 
 mrotorSlsCtrl::~mrotorSlsCtrl(){
@@ -137,14 +154,7 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
             diff_t_ = ros::Time::now().toSec() - gazebo_last_called_.toSec(); 
             gazebo_last_called_ = ros::Time::now();
 
-            if(finite_diff_enabled_){
-                applyFiniteDiffSys();
-            }
-            loadSlsStateRaw();
-            sls_state_raw_pub_.publish(sls_state_raw_); 
-            applyLowPassFilter();
-            loadSlsState();
-            sls_state_pub_.publish(sls_state_); 
+            applyLowPassFilterFiniteDiff();
 
             // // EKF
             // if(ctrl_enabled_) {
@@ -532,6 +542,7 @@ void mrotorSlsCtrl::applyFiniteDiffSys(void) {
     const Eigen::Vector4d qe = quatMultiplication(q_inv, mavAtt_);
 
     if(diff_t_ > FD_EPSILON) {
+        
         mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
         loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
         loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
@@ -569,6 +580,109 @@ void mrotorSlsCtrl::applyLowPassFilter(void) {
     }
 }
 
+void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
+    const Eigen::Vector4d inverse(1.0, -1.0, -1.0, -1.0);
+    const Eigen::Vector4d q_inv = inverse.asDiagonal() * mavAtt_prev_;
+    const Eigen::Vector4d qe = quatMultiplication(q_inv, mavAtt_);
+
+    if(lpf_enabled_) {
+        // >>> publish raw data
+        loadSlsStateRaw();
+        sls_state_raw_pub_.publish(sls_state_raw_); 
+
+        // mavPos
+        // mavPos_ = mav_pose_filter_ -> updateFilter(mavPos_, diff_t_);
+        // loadPos
+        loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
+        // pendAngle
+        pendAngle_ = loadPos_ - mavPos_;
+
+        // >>> Finite Diff
+        if(finite_diff_enabled_) {
+            if(diff_t_ > FD_EPSILON) {
+                // >>> mavVel
+                mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
+                mavVel_ = mav_vel_filter_ -> updateFilter(mavVel_, diff_t_);
+                // >>> mavRate
+                mavRate_(0) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(1);
+                mavRate_(1) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(2);
+                mavRate_(2) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(3);
+                // >>> loadVel
+                loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
+                loadVel_ = load_vel_filter_ -> updateFilter(loadVel_, diff_t_);
+                // >>> loadAcc
+                loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
+                // TODO loadAcc_ = load_acc_filter ->
+                // >>> pendRate
+                pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
+                pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
+                // >>> pendAngularAcc
+                pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
+                // TODO pendAngularAcc_ = pend_angular_acc_filter ->
+                applyIteration();
+            }
+            else {
+                mavVel_ = mavVel_prev_;
+                mavRate_ = mavRate_prev_;
+                loadVel_ = loadVel_prev_;
+                loadAcc_ = loadAcc_prev_;
+                pendRate_ = pendRate_prev_;
+                pendAngularAcc_ = pendAngularAcc_prev_;
+            }
+        }
+
+        else {
+            ROS_INFO_STREAM("Error: Finite Difference Not Enabled when LPF is called!");
+        }
+
+        // >>> publish filtered data
+        loadSlsState();
+        sls_state_pub_.publish(sls_state_); 
+    }
+
+    else { // LPF not enabled
+        // pendAngle
+        pendAngle_ = loadPos_ - mavPos_;
+        pendAngle_ = pendAngle_ / pendAngle_.norm();
+
+        if(finite_diff_enabled_) {
+            if(diff_t_ > FD_EPSILON) {
+                // >>> mavVel
+                mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
+                // >>> mavRate
+                mavRate_(0) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(1);
+                mavRate_(1) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(2);
+                mavRate_(2) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(3);
+                // >>> loadVel
+                loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
+                // >>> loadAcc
+                loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
+                // >>> pendRate
+                pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
+                // >>> pendAngularAcc
+                pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
+                applyIteration();
+            }
+            else {
+                mavVel_ = mavVel_prev_;
+                mavRate_ = mavRate_prev_;
+                loadVel_ = loadVel_prev_;
+                loadAcc_ = loadAcc_prev_;
+                pendRate_ = pendRate_prev_;
+                pendAngularAcc_ = pendAngularAcc_prev_;
+            }
+
+            // publish finite difference results
+            loadSlsState();
+            sls_state_pub_.publish(sls_state_); 
+        }
+
+        else {
+            ROS_INFO_STREAM("Error: Finite Difference Not Enabled when LPF is called!");
+        }
+    }
+}
+
 void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     ROS_INFO_STREAM("Vicon Drone1 Cb");
     readViconDronePose(msg);
@@ -603,15 +717,8 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
     // loadPos_ = mavPos_;
     // loadPos_(2) += -0.85;
 
-    pendAngle_ = loadPos_ - mavPos_;
-    pendAngle_ = pendAngle_ / pendAngle_.norm();
+    applyLowPassFilterFiniteDiff();
 
-    applyFiniteDiffSys();
-    loadSlsStateRaw();
-    sls_state_raw_pub_.publish(sls_state_raw_); 
-    applyLowPassFilter();
-    loadSlsState();
-    sls_state_pub_.publish(sls_state_); 
     exeControl(); 
 
 }

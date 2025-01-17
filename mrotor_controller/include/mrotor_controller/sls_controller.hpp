@@ -51,9 +51,11 @@ class mrotorSlsCtrl: public mrotorCtrl {
     /* LPFs */
     // double load_vel_tau_up_, load_vel_tau_down_;
     // FirstOrderFilter* load_vel_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> mav_pose_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> mav_vel_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_pose_filter_;
-    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_angle_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_vel_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_angle_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_rate_filter_;
 
     /* Callback Functions */
@@ -75,6 +77,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
     void applyIteration(void);
     void applyFiniteDiffSys(void);
     void applyLowPassFilter(void);
+    void applyLowPassFilterFiniteDiff(void);
     void readViconDronePose(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg);
     

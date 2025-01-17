@@ -7,11 +7,11 @@
         <arg name="ctrl_enabled" default="true"/>
         <arg name="rate_ctrl_enabled" default="true"/>
         <arg name="traj_tracking_enabled" default="false"/>
-        <arg name="finite_diff_enabled" default="false"/>
+        <arg name="finite_diff_enabled" default="true"/>
         <arg name="mission_enabled" default="false"/>
-        <arg name="drag_comp_enabled" default="false"/>
+        <arg name="drag_comp_enabled" default="true"/>
         <arg name="ekf_enabled" default="false"/>
-        <arg name="lpf_enabled" default="false"/>
+        <arg name="lpf_enabled" default="true"/>
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
@@ -20,16 +20,28 @@
         <arg name="rotor_drag_d_x" default="1.25"/>
         <arg name="rotor_drag_d_y" default="1.25"/>
         <arg name="rotor_drag_d_z" default="0.0"/>
-        <arg name="load_pose_cutoff_freq" default="5.0"/>
+
+        <arg name="mav_pose_cutoff_freq" default="30.0"/>
+        <arg name="mav_pose_q" default="0.625"/>
+        <arg name="mav_pose_verbose" default="false"/>
+
+        <arg name="mav_vel_cutoff_freq" default="30.0"/>
+        <arg name="mav_vel_q" default="0.625"/>
+        <arg name="mav_vel_verbose" default="false"/>
+
+        <arg name="load_pose_cutoff_freq" default="30.0"/>
         <arg name="load_pose_q" default="0.625"/>
-        <arg name="load_pose_verbose" default="true"/>
-        <arg name="pend_angle_cutoff_freq" default="5.0"/>
-        <arg name="pend_angle_q" default="0.625"/>
-        <arg name="pend_angle_verbose" default="true"/>
-        <arg name="load_vel_cutoff_freq" default="5.0"/>
+        <arg name="load_pose_verbose" default="false"/>
+
+        <arg name="load_vel_cutoff_freq" default="30.0"/>
         <arg name="load_vel_q" default="0.625"/>
         <arg name="load_vel_verbose" default="false"/>
-        <arg name="pend_rate_cutoff_freq" default="5.0"/>
+
+        <arg name="pend_angle_cutoff_freq" default="30.0"/>
+        <arg name="pend_angle_q" default="0.625"/>
+        <arg name="pend_angle_verbose" default="false"/>
+
+        <arg name="pend_rate_cutoff_freq" default="30.0"/>
         <arg name="pend_rate_q" default="0.625"/>
         <arg name="pend_rate_verbose" default="false"/>
 

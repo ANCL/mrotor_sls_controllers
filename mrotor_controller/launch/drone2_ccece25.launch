@@ -22,10 +22,10 @@
         <arg name="rotor_drag_d_z" default="0.00"/>
         <arg name="mav_mass" default="1.55"/>
         <arg name="load_mass" default="0.244"/>
-        <arg name="load_pose_cutoff_freq" default="5.0"/>
+        <arg name="load_pose_cutoff_freq" default="1.0"/>
         <arg name="load_pose_q" default="0.625"/>
         <arg name="load_pose_verbose" default="false"/>
-        <arg name="pend_angle_cutoff_freq" default="5.0"/>
+        <arg name="pend_angle_cutoff_freq" default="1.0"/>
         <arg name="pend_angle_q" default="0.625"/>
         <arg name="pend_angle_verbose" default="false"/>
         <arg name="load_vel_cutoff_freq" default="5.0"/>

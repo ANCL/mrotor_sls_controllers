@@ -23,6 +23,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     vicon_load_sub_ = nh_.subscribe<geometry_msgs::TransformStamped> ("/vicon/load_1/load_1", 1000, &mrotorSlsCtrl::viconLoad1PoseCb, this, ros::TransportHints().tcpNoDelay()); 
 
     /* Publishers */
+    sls_state_raw_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state_raw", 1);
     sls_state_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state", 1);
     // sls_state_ekf_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state_ekf", 1);
     sls_force_pub_ = nh_.advertise<controller_msgs::SlsForce> ("mrotor_sls_controller/sls_force", 1);
@@ -66,7 +67,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
 
 
     load_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, load_vel_q, load_vel_verbose));
-    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_q, pend_rate_q, pend_rate_verbose));
+    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, pend_rate_q, pend_rate_verbose));
 }
 
 mrotorSlsCtrl::~mrotorSlsCtrl(){
@@ -460,7 +461,7 @@ Eigen::Vector3d mrotorSlsCtrl::compensateRotorDrag(double t) {
 }
 
 
-void mrotorSlsCtrl::loadSlsState(void) {
+void mrotorSlsCtrl::loadSlsState() {
     sls_state_.header.stamp = ros::Time::now();
     sls_state_.sls_state[0] = loadPos_(1);
     sls_state_.sls_state[1] = loadPos_(0);
@@ -474,6 +475,22 @@ void mrotorSlsCtrl::loadSlsState(void) {
     sls_state_.sls_state[9] = pendRate_(1);
     sls_state_.sls_state[10] = pendRate_(0);
     sls_state_.sls_state[11] = -pendRate_(2);
+}
+
+void mrotorSlsCtrl::loadSlsStateRaw() {
+    sls_state_raw_.header.stamp = ros::Time::now();
+    sls_state_raw_.sls_state[0] = loadPos_(1);
+    sls_state_raw_.sls_state[1] = loadPos_(0);
+    sls_state_raw_.sls_state[2] = -loadPos_(2);
+    sls_state_raw_.sls_state[3] = pendAngle_(1);
+    sls_state_raw_.sls_state[4] = pendAngle_(0);
+    sls_state_raw_.sls_state[5] = -pendAngle_(2);
+    sls_state_raw_.sls_state[6] = loadVel_(1);
+    sls_state_raw_.sls_state[7] = loadVel_(0);
+    sls_state_raw_.sls_state[8] = -loadVel_(2); 
+    sls_state_raw_.sls_state[9] = pendRate_(1);
+    sls_state_raw_.sls_state[10] = pendRate_(0);
+    sls_state_raw_.sls_state[11] = -pendRate_(2);
 }
 
 
@@ -572,8 +589,11 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
     pendAngle_ = pendAngle_ / pendAngle_.norm();
 
     applyFiniteDiffSys();
+    loadSlsStateRaw();
+    sls_state_raw_pub_.publish(sls_state_raw_); 
     applyLowPassFilter();
     loadSlsState();
+    sls_state_pub_.publish(sls_state_); 
     exeControl(); 
 
 }

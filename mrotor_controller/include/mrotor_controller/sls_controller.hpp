@@ -11,6 +11,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
   private:
     /* Publishers */
     ros::Publisher sls_state_pub_;
+    ros::Publisher sls_state_raw_pub_;
     ros::Publisher sls_state_ekf_pub_;
     ros::Publisher sls_force_pub_;
 
@@ -18,6 +19,7 @@ class mrotorSlsCtrl: public mrotorCtrl {
     ros::Subscriber vicon_load_sub_;
     
     /* Messages */
+    controller_msgs::SlsState sls_state_raw_; 
     controller_msgs::SlsState sls_state_; 
     controller_msgs::SlsForce sls_force_; 
     
@@ -67,7 +69,8 @@ class mrotorSlsCtrl: public mrotorCtrl {
     void exeControl(void);
     Eigen::Vector3d transformPose(Eigen::Vector3d p_0, Eigen::Vector3d offsetVector);
     Eigen::Vector3d compensateRotorDrag(double t);
-    void loadSlsState(void);
+    void loadSlsState();
+    void loadSlsStateRaw();
     void applyIteration(void);
     void applyFiniteDiffSys(void);
     void applyLowPassFilter(void);

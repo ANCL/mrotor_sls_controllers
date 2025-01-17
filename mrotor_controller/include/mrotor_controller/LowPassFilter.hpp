@@ -8,13 +8,13 @@ template <typename Type>
 class SecondOrderFilter {
     public:
         SecondOrderFilter(double cutoff_freq, double Q, bool verbose):verbose_(verbose) {
-            if(verbose_) std::cout << "[2ndFilter] Construction Started" << std::endl;
+            if(verbose_) ROS_INFO_STREAM("[2ndFilter] Construction Started" );
             omega_ = 2 * PI * cutoff_freq;
             xi_ = 1/(2*Q);
-            if(verbose_) std::cout << "[2ndFilter] Construction Complete" << std::endl;
+            if(verbose_) ROS_INFO_STREAM("[2ndFilter] Construction Complete" );
         };
         ~SecondOrderFilter() {
-            if(verbose_) std::cout << "[2ndFilter] Destructed" << std::endl;
+            if(verbose_) ROS_INFO_STREAM("[2ndFilter] Destructed" );
         };
 
         Type updateFilter(Type x_k, double sampling_time) {
@@ -34,8 +34,10 @@ class SecondOrderFilter {
             b_[1] = k5 / k1;
             b_[2] = k6 / k1;
 
-            std::cout << "[filterUpdate] T=" << T << " omega=" << omega << " xi=" << xi << " b=" << b_[0] << "," << b_[1] << "," << b_[2] << " a=" << a_[0] << "," << a_[1] << "," << a_[2] << std::endl;
-
+            if(verbose_) {
+                ROS_INFO_STREAM("[filterUpdate] T=" << T << " omega=" << omega << " xi=" << xi << " b=" << b_[0] << "," << b_[1] << "," << b_[2] << " a=" << a_[0] << "," << a_[1] << "," << a_[2] );
+            }
+            
             Type y_k;
             y_k = b_[0] * x_k + b_[1] * x_k_1_ + b_[2]*x_k_2_ - a_[1] * y_k_1_ - a_[2] * y_k_2_;
 

@@ -50,6 +50,8 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<bool>("mission_enabled", mission_enabled_, false);
     nh_private_.param<bool>("cmdloop_enabled", cmdloop_enabled_, false);
     nh_private_.param<bool>("drag_comp_enabled", drag_comp_enabled_, false);
+    nh_private_.param<bool>("ekf_enabled", ekf_enabled_, false);
+    nh_private_.param<bool>("lpf_enabled", lpf_enabled_, false);
     // drone physical constants
     nh_private_.param<double>("mav_mass", mav_mass_, 1.56);    
     nh_private_.param<double>("max_acc", max_fb_acc_, 9.0);
@@ -259,6 +261,17 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
         drag_comp_enabled_ = config.drag_comp_enabled;
         ROS_INFO("Reconfigure request : drag_comp_enabled_ = %s ", drag_comp_enabled_ ? "true" : "false");
     } 
+
+    else if(ekf_enabled_ != config.ekf_enabled) {
+        ekf_enabled_ = config.ekf_enabled;
+        ROS_INFO("Reconfigure request : ekf_enabled_ = %s ", ekf_enabled_ ? "true" : "false");
+    } 
+
+    else if(lpf_enabled_ != config.lpf_enabled) {
+        lpf_enabled_ = config.lpf_enabled;
+        ROS_INFO("Reconfigure request : lpf_enabled_ = %s ", lpf_enabled_ ? "true" : "false");
+    } 
+
 
     /* Max Acceleration*/
     else if (max_fb_acc_ != config.max_acc) {

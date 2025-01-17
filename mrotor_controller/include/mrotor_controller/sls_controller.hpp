@@ -4,11 +4,14 @@
 #include "mrotor_controller/mrotor_controller.hpp"
 #include "controller_msgs/SlsState.h"
 #include "controller_msgs/SlsForce.h"
+#include "mrotor_controller/KalmanFilter.hpp"
+#include "mrotor_controller/LowPassFilter.hpp"
 
 class mrotorSlsCtrl: public mrotorCtrl {
   private:
     /* Publishers */
     ros::Publisher sls_state_pub_;
+    ros::Publisher sls_state_ekf_pub_;
     ros::Publisher sls_force_pub_;
 
     /* Subscribers */
@@ -40,6 +43,16 @@ class mrotorSlsCtrl: public mrotorCtrl {
       "px4vision_0::px4vision_ancl::base_link", 
     };
 
+    Eigen::MatrixXd P_, Q_, R_;
+    std::shared_ptr<mrotorSlsEKF> ekf_;
+
+    /* LPFs */
+    // double load_vel_tau_up_, load_vel_tau_down_;
+    // FirstOrderFilter* load_vel_filter_;
+
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_vel_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_rate_filter_;
+
     /* Callback Functions */
     void cmdloopCb(const ros::TimerEvent &event);
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
@@ -54,9 +67,10 @@ class mrotorSlsCtrl: public mrotorCtrl {
     void exeControl(void);
     Eigen::Vector3d transformPose(Eigen::Vector3d p_0, Eigen::Vector3d offsetVector);
     Eigen::Vector3d compensateRotorDrag(double t);
-    void pubSlsState(void);
+    void loadSlsState(void);
     void applyIteration(void);
     void applyFiniteDiffSys(void);
+    void applyLowPassFilter(void);
     void readViconDronePose(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg);
     

@@ -24,6 +24,7 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
 
     /* Publishers */
     sls_state_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state", 1);
+    // sls_state_ekf_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state_ekf", 1);
     sls_force_pub_ = nh_.advertise<controller_msgs::SlsForce> ("mrotor_sls_controller/sls_force", 1);
 
     /* Timer */
@@ -39,6 +40,33 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     targetRadium_ << r_x_, r_y_, r_z_;
     targetFrequency_ << fr_x_, fr_y_, fr_z_;
     targetPhase_ << ph_x_, ph_y_, ph_z_;
+
+    P_ = Eigen::MatrixXd::Zero(12, 12);
+    Q_ = Eigen::MatrixXd::Zero(12, 12);
+    R_ = Eigen::MatrixXd::Zero(12, 12);
+
+    // ekf_ = std::make_shared<mrotorSlsEKF>(mav_mass_, load_mass_, cable_length_, P_, Q_, R_, false);
+
+    // load_vel_tau_up_ = 0.1592;
+    // load_vel_tau_down_ = 0.1592;
+    // load_vel_filter_ = new FirstOrderFilter(load_vel_tau_up_, load_vel_tau_down_, loadVel_);
+
+    double load_vel_cutoff_freq;
+    double load_vel_q;
+    bool load_vel_verbose;
+    double pend_rate_cutoff_freq;
+    double pend_rate_q;
+    bool pend_rate_verbose;
+    nh_private_.param<double>("load_vel_cutoff_freq", load_vel_cutoff_freq, 30);
+    nh_private_.param<double>("load_vel_q", load_vel_q, 0.625);
+    nh_private_.param<bool>("load_vel_verbose", load_vel_verbose, false);
+    nh_private_.param<double>("pend_rate_cutoff_freq", pend_rate_cutoff_freq, 30);
+    nh_private_.param<double>("pend_rate_q", pend_rate_q, 0.625);
+    nh_private_.param<bool>("pend_rate_verbose", pend_rate_verbose, false);
+
+
+    load_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, load_vel_q, load_vel_verbose));
+    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_q, pend_rate_q, pend_rate_verbose));
 }
 
 mrotorSlsCtrl::~mrotorSlsCtrl(){
@@ -96,7 +124,37 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
                 applyFiniteDiffSys();
             }
 
-            pubSlsState();  
+            applyLowPassFilter();
+
+            loadSlsState();  
+            sls_state_pub_.publish(sls_state_); 
+
+            // // EKF
+            // if(ctrl_enabled_) {
+            //     controller_msgs::SlsState sls_state_ekf;
+            //     if(!ekf_init_) {
+            //         ekf_ -> resetInitState(sls_state_);
+            //         ekf_init_ = true;
+            //     }    
+
+            //     if(diff_t_ > FD_EPSILON) {
+            //         sls_state_ekf = ekf_ -> updateFilter(sls_state_, sls_force_, diff_t_);
+            //         sls_state_ekf_pub_.publish(sls_state_ekf); 
+            //     }
+
+            //     if(ekf_enabled_) {   
+            //         sls_state_ = sls_state_ekf;
+            //     }
+
+            //     else {
+            //         sls_state_pub_.publish(sls_state_); 
+            //     }
+            // }
+
+            // else {
+            //     ekf_init_ = false;
+            // }
+            
 
             exeControl(); 
 
@@ -325,7 +383,7 @@ void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
             applyFiniteDiffSys();
         }
 
-        pubSlsState();  
+        loadSlsState();  
 
         exeControl(); 
     }
@@ -402,7 +460,7 @@ Eigen::Vector3d mrotorSlsCtrl::compensateRotorDrag(double t) {
 }
 
 
-void mrotorSlsCtrl::pubSlsState(void) {
+void mrotorSlsCtrl::loadSlsState(void) {
     sls_state_.header.stamp = ros::Time::now();
     sls_state_.sls_state[0] = loadPos_(1);
     sls_state_.sls_state[1] = loadPos_(0);
@@ -416,7 +474,6 @@ void mrotorSlsCtrl::pubSlsState(void) {
     sls_state_.sls_state[9] = pendRate_(1);
     sls_state_.sls_state[10] = pendRate_(0);
     sls_state_.sls_state[11] = -pendRate_(2);
-    sls_state_pub_.publish(sls_state_);   
 }
 
 
@@ -469,6 +526,14 @@ void mrotorSlsCtrl::applyFiniteDiffSys(void) {
     // if(diff_t_ != 0.004) ROS_INFO_STREAM("FD: Time interval varied!" << mavVel_prev_ << "" << mavVel_);
 }
 
+
+void mrotorSlsCtrl::applyLowPassFilter(void) {
+    if(lpf_enabled_) {
+        loadVel_ = load_vel_filter_ -> updateFilter(loadVel_, diff_t_);
+        pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
+    }
+}
+
 void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     ROS_INFO_STREAM("Vicon Drone1 Cb");
     readViconDronePose(msg);
@@ -507,10 +572,13 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
     pendAngle_ = pendAngle_ / pendAngle_.norm();
 
     applyFiniteDiffSys();
-    pubSlsState();
+    applyLowPassFilter();
+    loadSlsState();
     exeControl(); 
+
 }
 
 void mrotorSlsCtrl::readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     loadPos_ = toEigen(msg -> transform.translation);
 }
+

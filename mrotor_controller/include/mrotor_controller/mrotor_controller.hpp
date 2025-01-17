@@ -113,6 +113,9 @@ class mrotorCtrl {
     bool mission_initialized_ = false;
     bool cmdloop_enabled_ = false;
     bool drag_comp_enabled_ = false;
+    bool ekf_enabled_ = false;
+    bool ekf_init_ = false;
+    bool lpf_enabled_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links

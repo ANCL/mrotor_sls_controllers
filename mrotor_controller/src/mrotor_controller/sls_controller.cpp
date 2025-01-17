@@ -52,22 +52,38 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     // load_vel_tau_down_ = 0.1592;
     // load_vel_filter_ = new FirstOrderFilter(load_vel_tau_up_, load_vel_tau_down_, loadVel_);
 
+    double load_pose_cutoff_freq;
+    double load_pose_q;
+    bool load_pose_verbose;
+    nh_private_.param<double>("load_pose_cutoff_freq", load_pose_cutoff_freq, 30);
+    nh_private_.param<double>("load_pose_q", load_pose_q, 0.625);
+    nh_private_.param<bool>("load_pose_verbose", load_pose_verbose, false);
+
+    double pend_angle_cutoff_freq;
+    double pend_angle_q;
+    bool pend_angle_verbose;
+    nh_private_.param<double>("pend_angle_cutoff_freq", pend_angle_cutoff_freq, 30);
+    nh_private_.param<double>("pend_angle_q", pend_angle_q, 0.625);
+    nh_private_.param<bool>("pend_angle_verbose", pend_angle_verbose, false);
+
     double load_vel_cutoff_freq;
     double load_vel_q;
     bool load_vel_verbose;
-    double pend_rate_cutoff_freq;
-    double pend_rate_q;
-    bool pend_rate_verbose;
     nh_private_.param<double>("load_vel_cutoff_freq", load_vel_cutoff_freq, 30);
     nh_private_.param<double>("load_vel_q", load_vel_q, 0.625);
     nh_private_.param<bool>("load_vel_verbose", load_vel_verbose, false);
+
+    double pend_rate_cutoff_freq;
+    double pend_rate_q;
+    bool pend_rate_verbose;
     nh_private_.param<double>("pend_rate_cutoff_freq", pend_rate_cutoff_freq, 30);
     nh_private_.param<double>("pend_rate_q", pend_rate_q, 0.625);
     nh_private_.param<bool>("pend_rate_verbose", pend_rate_verbose, false);
 
-
+    load_pose_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_pose_cutoff_freq, load_pose_q, load_pose_verbose));
+    pend_angle_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_angle_cutoff_freq, pend_angle_q, pend_angle_verbose));
     load_vel_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, load_vel_q, load_vel_verbose));
-    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(load_vel_cutoff_freq, pend_rate_q, pend_rate_verbose));
+    pend_rate_filter_.reset(new SecondOrderFilter<Eigen::Vector3d>(pend_rate_cutoff_freq, pend_rate_q, pend_rate_verbose));
 }
 
 mrotorSlsCtrl::~mrotorSlsCtrl(){
@@ -124,10 +140,10 @@ void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& m
             if(finite_diff_enabled_){
                 applyFiniteDiffSys();
             }
-
+            loadSlsStateRaw();
+            sls_state_raw_pub_.publish(sls_state_raw_); 
             applyLowPassFilter();
-
-            loadSlsState();  
+            loadSlsState();
             sls_state_pub_.publish(sls_state_); 
 
             // // EKF
@@ -546,6 +562,8 @@ void mrotorSlsCtrl::applyFiniteDiffSys(void) {
 
 void mrotorSlsCtrl::applyLowPassFilter(void) {
     if(lpf_enabled_) {
+        loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
+        pendAngle_ = pend_angle_filter_ -> updateFilter(pendAngle_, diff_t_);
         loadVel_ = load_vel_filter_ -> updateFilter(loadVel_, diff_t_);
         pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
     }

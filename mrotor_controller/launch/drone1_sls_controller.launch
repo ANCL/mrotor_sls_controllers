@@ -20,10 +20,16 @@
         <arg name="rotor_drag_d_x" default="1.25"/>
         <arg name="rotor_drag_d_y" default="1.25"/>
         <arg name="rotor_drag_d_z" default="0.0"/>
-        <arg name="load_vel_cutoff_freq" default="30.0"/>
+        <arg name="load_pose_cutoff_freq" default="5.0"/>
+        <arg name="load_pose_q" default="0.625"/>
+        <arg name="load_pose_verbose" default="true"/>
+        <arg name="pend_angle_cutoff_freq" default="5.0"/>
+        <arg name="pend_angle_q" default="0.625"/>
+        <arg name="pend_angle_verbose" default="true"/>
+        <arg name="load_vel_cutoff_freq" default="5.0"/>
         <arg name="load_vel_q" default="0.625"/>
         <arg name="load_vel_verbose" default="false"/>
-        <arg name="pend_rate_cutoff_freq" default="30.0"/>
+        <arg name="pend_rate_cutoff_freq" default="5.0"/>
         <arg name="pend_rate_q" default="0.625"/>
         <arg name="pend_rate_verbose" default="false"/>
 
@@ -90,6 +96,12 @@
             <param name="rotor_drag_d_y" value="$(arg rotor_drag_d_y)"/>
             <param name="rotor_drag_d_z" value="$(arg rotor_drag_d_z)"/>
             <param name="tracking_exit_min_error" value="$(arg tracking_exit_min_error)"/>
+            <param name="load_pose_cutoff_freq" value="$(arg load_pose_cutoff_freq)"/>
+            <param name="load_pose_q" value="$(arg load_pose_q)"/>
+            <param name="load_pose_verbose" value="$(arg load_pose_verbose)"/>
+            <param name="pend_angle_cutoff_freq" value="$(arg pend_angle_cutoff_freq)"/>
+            <param name="pend_angle_q" value="$(arg pend_angle_q)"/>
+            <param name="pend_angle_verbose" value="$(arg pend_angle_verbose)"/>
             <param name="load_vel_cutoff_freq" value="$(arg load_vel_cutoff_freq)"/>
             <param name="load_vel_q" value="$(arg load_vel_q)"/>
             <param name="load_vel_verbose" value="$(arg load_vel_verbose)"/>

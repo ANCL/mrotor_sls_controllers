@@ -21,19 +21,33 @@
         <arg name="rotor_drag_d_y" default="0.00"/>
         <arg name="rotor_drag_d_z" default="0.00"/>
         <arg name="mav_mass" default="1.55"/>
-        <arg name="load_mass" default="0.244"/>
-        <arg name="load_pose_cutoff_freq" default="1.0"/>
+        <arg name="load_mass" default="0.263"/>
+
+        <arg name="mav_pose_cutoff_freq" default="5.0"/>
+        <arg name="mav_pose_q" default="0.625"/>
+        <arg name="mav_pose_verbose" default="false"/>
+
+        <arg name="mav_vel_cutoff_freq" default="8.0"/>
+        <arg name="mav_vel_q" default="0.625"/>
+        <arg name="mav_vel_verbose" default="false"/>
+
+        <arg name="load_pose_cutoff_freq" default="5.0"/>
         <arg name="load_pose_q" default="0.625"/>
         <arg name="load_pose_verbose" default="false"/>
-        <arg name="pend_angle_cutoff_freq" default="1.0"/>
-        <arg name="pend_angle_q" default="0.625"/>
-        <arg name="pend_angle_verbose" default="false"/>
-        <arg name="load_vel_cutoff_freq" default="5.0"/>
+        
+        <arg name="load_vel_cutoff_freq" default="8.0"/>
         <arg name="load_vel_q" default="0.625"/>
         <arg name="load_vel_verbose" default="false"/>
+
+        <arg name="pend_angle_cutoff_freq" default="5.0"/>
+        <arg name="pend_angle_q" default="0.625"/>
+        <arg name="pend_angle_verbose" default="false"/>
+
         <arg name="pend_rate_cutoff_freq" default="5.0"/>
         <arg name="pend_rate_q" default="0.625"/>
         <arg name="pend_rate_verbose" default="false"/>
+
+
 
         <node pkg="mrotor_controller" type="node" name="mrotor_controller" output="screen">
             <param name="mav_num" type="int" value="$(arg mav_num)" />
@@ -56,7 +70,7 @@
             <param name="normalized_thrust_constant" value="0.0435"/>
             <param name="normalized_thrust_offset" value="0.0"/>
 
-            <!-- <param name="Kp_x" value="24.0" />
+            <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
             <param name="Kp_z" value="2.0" />
             <param name="Kv_x" value="50.0"/>
@@ -67,9 +81,9 @@
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="10.0"/>
             <param name="Kj_y" value="10.0"/>
-            <param name="Kj_z" value="0.0"/> -->
+            <param name="Kj_z" value="0.0"/>
 
-            <param name="Kp_x" value="22.0" />
+            <!-- <param name="Kp_x" value="22.0" />
             <param name="Kp_y" value="22.0" />
             <param name="Kp_z" value="2.0" />
             <param name="Kv_x" value="40.0"/>
@@ -80,7 +94,7 @@
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="7.0"/>
             <param name="Kj_y" value="7.0"/>
-            <param name="Kj_z" value="0.0"/>
+            <param name="Kj_z" value="0.0"/> -->
 
             <!-- <param name="Kp_x" value="28.0" />
             <param name="Kp_y" value="28.0" />

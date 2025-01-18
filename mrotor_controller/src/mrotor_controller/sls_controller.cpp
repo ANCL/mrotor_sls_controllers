@@ -593,7 +593,7 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
         // mavPos
         // mavPos_ = mav_pose_filter_ -> updateFilter(mavPos_, diff_t_);
         // loadPos
-        loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
+        // loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
         // pendAngle
         pendAngle_ = loadPos_ - mavPos_;
 
@@ -614,8 +614,9 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
                 // TODO loadAcc_ = load_acc_filter ->
                 // >>> pendRate
-                pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
-                pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
+                pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+                // pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
+                // pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
                 // >>> pendAngularAcc
                 pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
                 // TODO pendAngularAcc_ = pend_angular_acc_filter ->

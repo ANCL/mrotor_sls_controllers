@@ -587,8 +587,8 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
 
     if(lpf_enabled_) {
         // >>> publish raw data
-        loadSlsStateRaw();
-        sls_state_raw_pub_.publish(sls_state_raw_); 
+        // loadSlsStateRaw();
+        // sls_state_raw_pub_.publish(sls_state_raw_); 
 
         // mavPos
         // mavPos_ = mav_pose_filter_ -> updateFilter(mavPos_, diff_t_);
@@ -596,9 +596,14 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
         // loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
         // pendAngle
         pendAngle_ = loadPos_ - mavPos_;
-
         // >>> Finite Diff
         if(finite_diff_enabled_) {
+            sls_state_raw_.sls_state[0] = loadPos_(1);
+            sls_state_raw_.sls_state[1] = loadPos_(0);
+            sls_state_raw_.sls_state[2] = -loadPos_(2);
+            sls_state_raw_.sls_state[3] = pendAngle_(1);
+            sls_state_raw_.sls_state[4] = pendAngle_(0);
+            sls_state_raw_.sls_state[5] = -pendAngle_(2);
             if(diff_t_ > FD_EPSILON) {
                 // >>> mavVel
                 mavVel_ = (mavPos_ - mavPos_prev_) / diff_t_;
@@ -609,17 +614,25 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 mavRate_(2) = (2.0 / diff_t_) * std::copysign(1.0, qe(0)) * qe(3);
                 // >>> loadVel
                 loadVel_ = (loadPos_ - loadPos_prev_) / diff_t_;
+                sls_state_raw_.sls_state[6] = loadVel_(1);
+                sls_state_raw_.sls_state[7] = loadVel_(0);
+                sls_state_raw_.sls_state[8] = -loadVel_(2); 
                 loadVel_ = load_vel_filter_ -> updateFilter(loadVel_, diff_t_);
                 // >>> loadAcc
                 loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
                 // TODO loadAcc_ = load_acc_filter ->
                 // >>> pendRate
                 pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+                sls_state_raw_.sls_state[9] = pendRate_(1);
+                sls_state_raw_.sls_state[10] = pendRate_(0);
+                sls_state_raw_.sls_state[11] = -pendRate_(2);
                 // pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
                 // pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
                 // >>> pendAngularAcc
                 pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
                 // TODO pendAngularAcc_ = pend_angular_acc_filter ->
+
+
                 applyIteration();
             }
             else {
@@ -629,7 +642,16 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 loadAcc_ = loadAcc_prev_;
                 pendRate_ = pendRate_prev_;
                 pendAngularAcc_ = pendAngularAcc_prev_;
+                sls_state_raw_.sls_state[6] = loadVel_(1);
+                sls_state_raw_.sls_state[7] = loadVel_(0);
+                sls_state_raw_.sls_state[8] = -loadVel_(2); 
+                sls_state_raw_.sls_state[9] = pendRate_(1);
+                sls_state_raw_.sls_state[10] = pendRate_(0);
+                sls_state_raw_.sls_state[11] = -pendRate_(2);
             }
+            sls_state_raw_.header.stamp = ros::Time::now();
+            sls_state_raw_pub_.publish(sls_state_raw_); 
+
         }
 
         else {

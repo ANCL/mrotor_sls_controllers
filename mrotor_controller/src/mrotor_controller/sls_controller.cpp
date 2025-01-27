@@ -715,6 +715,7 @@ void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::Con
 void mrotorSlsCtrl::viconDrone2PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     // ROS_INFO_STREAM("Vicon Drone2 Cb");
     readViconDronePose(msg);
+    applyLowPassFilterFiniteDiff();
     exeControl();
 }
 
@@ -740,9 +741,9 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
     // loadPos_ = mavPos_;
     // loadPos_(2) += -0.85;
 
-    applyLowPassFilterFiniteDiff();
+    // applyLowPassFilterFiniteDiff();
 
-    exeControl(); 
+    // exeControl(); 
 
 }
 

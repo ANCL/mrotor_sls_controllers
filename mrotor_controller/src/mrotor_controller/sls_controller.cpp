@@ -647,7 +647,12 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 loadAcc_ = (loadVel_ - loadVel_prev_) / diff_t_;
                 loadAcc_ = load_acc_filter_ -> updateFilter(loadAcc_, diff_t_);
                 // >>> pendRate
-                pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+                if(use_real_pend_angle_) {
+                    pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+                }
+                else {
+                    pendRate_ = Eigen::Vector3d::Zero();
+                }
                 sls_state_raw_.sls_state[9] = pendRate_(1);
                 sls_state_raw_.sls_state[10] = pendRate_(0);
                 sls_state_raw_.sls_state[11] = -pendRate_(2);

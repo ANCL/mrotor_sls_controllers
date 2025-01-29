@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version='1.6'>
   <enable_lockstep>false</enable_lockstep>
-  <model name='px4vision_sls'>
+  <model name='px4vision_sls_offset'>
   <static>false</static>
   <include>
     <uri>model://px4vision_ancl</uri>
@@ -46,7 +46,8 @@
   <link name='pendulum'>
     <!-- <pose>-0.425 0 0 0 1.57 0</pose> -->
     <!-- <pose>0 0 -0.425 0 0 0</pose> -->
-    <pose>0 0 -0.32 0 0 0</pose>
+    <!-- <pose>0 0 -0.32 0 0 0</pose> -->
+    <pose>0 0 -0.39 0 0 0</pose>
     <inertial>
       <mass>0.01</mass>
       <inertia>
@@ -95,7 +96,8 @@
   <link name='load'>
     <!-- <pose>-0.85 0 0 0 1.57 0</pose> -->
     <!-- <pose>0 0 -0.85 0 0 0</pose> -->
-    <pose>0 0 -0.745 0 0 0</pose>
+    <!-- <pose>0 0 -0.745 0 0 0</pose> -->
+    <pose>0 0 -0.815 0 0 0</pose>
     <inertial>
       <!-- <mass>0.25</mass> -->
       <mass>0.25</mass>

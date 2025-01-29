@@ -19,6 +19,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
         default: 
             break;
     }
+    mavros_pose_sub_ = nh_.subscribe<geometry_msgs::PoseStamped> ("mavros/local_position/pose", 10, &mrotorCtrl::mavrosPoseCb, this, ros::TransportHints().tcpNoDelay()); 
 
     /* Publishers */
     target_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped> ("mavros/setpoint_position/local", 10);
@@ -225,6 +226,31 @@ void mrotorCtrl::viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     exeControl();
 }
 
+
+void mrotorCtrl::mavrosPoseCb(const geometry_msgs::PoseStamped::ConstPtr &msg) {
+
+    if(!use_onboard_att_meas_) {
+        // ROS_INFO_STREAM("not using mavros att");
+    }
+
+    else{
+        mavAtt_(0) = msg -> pose.orientation.w;
+        mavAtt_(1) = msg -> pose.orientation.x;
+        mavAtt_(2) = msg -> pose.orientation.y;
+        mavAtt_(3) = msg -> pose.orientation.z;
+        // ROS_INFO_STREAM("using mavros att");
+    }
+}
+
+
+
+
+
+
+
+
+
+
 void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig &config, uint32_t level) {
     /* Switches */
     if(ctrl_enabled_ != config.ctrl_enabled) {
@@ -270,6 +296,11 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     else if(lpf_enabled_ != config.lpf_enabled) {
         lpf_enabled_ = config.lpf_enabled;
         ROS_INFO("Reconfigure request : lpf_enabled_ = %s ", lpf_enabled_ ? "true" : "false");
+    } 
+
+    else if(use_onboard_att_meas_ != config.use_onboard_att_meas) {
+        use_onboard_att_meas_ = config.use_onboard_att_meas;
+        ROS_INFO("Reconfigure request : use_onboard_att_meas_ = %s ", use_onboard_att_meas_ ? "true" : "false");
     } 
 
 
@@ -672,3 +703,4 @@ void mrotorCtrl::exeControl() {
         updateReference();
     }
 }
+

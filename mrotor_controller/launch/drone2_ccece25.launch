@@ -12,6 +12,8 @@
         <arg name="drag_comp_enabled" default="false"/>
         <arg name="ekf_enabled" default="false"/>
         <arg name="lpf_enabled" default="true"/>
+        <arg name="use_onboard_att_meas" default="false"/>
+        <arg name="use_real_pend_angle" default="true"/>
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
@@ -23,7 +25,7 @@
         <arg name="mav_mass" default="1.55"/>
         <arg name="load_mass" default="0.263"/>
 
-        <arg name="mav_pose_cutoff_freq" default="5.0"/>
+        <arg name="mav_pose_cutoff_freq" default="8.0"/>
         <arg name="mav_pose_q" default="0.625"/>
         <arg name="mav_pose_verbose" default="false"/>
 
@@ -31,7 +33,7 @@
         <arg name="mav_vel_q" default="0.625"/>
         <arg name="mav_vel_verbose" default="false"/>
 
-        <arg name="load_pose_cutoff_freq" default="5.0"/>
+        <arg name="load_pose_cutoff_freq" default="8.0"/>
         <arg name="load_pose_q" default="0.625"/>
         <arg name="load_pose_verbose" default="false"/>
         
@@ -39,15 +41,21 @@
         <arg name="load_vel_q" default="0.625"/>
         <arg name="load_vel_verbose" default="false"/>
 
-        <arg name="pend_angle_cutoff_freq" default="5.0"/>
+        <arg name="load_acc_cutoff_freq" default="8.0"/>
+        <arg name="load_acc_q" default="0.625"/>
+        <arg name="load_acc_verbose" default="false"/>
+
+        <arg name="pend_angle_cutoff_freq" default="8.0"/>
         <arg name="pend_angle_q" default="0.625"/>
         <arg name="pend_angle_verbose" default="false"/>
 
-        <arg name="pend_rate_cutoff_freq" default="5.0"/>
+        <arg name="pend_rate_cutoff_freq" default="8.0"/>
         <arg name="pend_rate_q" default="0.625"/>
         <arg name="pend_rate_verbose" default="false"/>
 
-
+        <arg name="pend_angular_acc_cutoff_freq" default="8.0"/>
+        <arg name="pend_angular_acc_q" default="0.625"/>
+        <arg name="pend_angular_acc_verbose" default="false"/>
 
         <node pkg="mrotor_controller" type="node" name="mrotor_controller" output="screen">
             <param name="mav_num" type="int" value="$(arg mav_num)" />
@@ -62,6 +70,8 @@
             <param name="drag_comp_enabled" value="$(arg drag_comp_enabled)" />
             <param name="ekf_enabled" value="$(arg ekf_enabled)" />
             <param name="lpf_enabled" value="$(arg lpf_enabled)" />
+            <param name="use_onboard_att_meas" value="$(arg use_onboard_att_meas)" />
+            <param name="use_real_pend_angle" value="$(arg use_real_pend_angle)" />
             <param name="max_acc" value="20.0" />
             <param name="mav_mass" value="$(arg mav_mass)" />
             <param name="cable_length" value="0.85"/>
@@ -70,7 +80,7 @@
             <param name="normalized_thrust_constant" value="0.0435"/>
             <param name="normalized_thrust_offset" value="0.0"/>
 
-            <param name="Kp_x" value="24.0" />
+            <!-- <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
             <param name="Kp_z" value="2.0" />
             <param name="Kv_x" value="50.0"/>
@@ -81,9 +91,9 @@
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="10.0"/>
             <param name="Kj_y" value="10.0"/>
-            <param name="Kj_z" value="0.0"/>
+            <param name="Kj_z" value="0.0"/> -->
 
-            <!-- <param name="Kp_x" value="22.0" />
+            <param name="Kp_x" value="22.0" />
             <param name="Kp_y" value="22.0" />
             <param name="Kp_z" value="2.0" />
             <param name="Kv_x" value="40.0"/>
@@ -94,20 +104,8 @@
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="7.0"/>
             <param name="Kj_y" value="7.0"/>
-            <param name="Kj_z" value="0.0"/> -->
+            <param name="Kj_z" value="0.0"/>
 
-            <!-- <param name="Kp_x" value="28.0" />
-            <param name="Kp_y" value="28.0" />
-            <param name="Kp_z" value="2.0" />
-            <param name="Kv_x" value="48.0"/>
-            <param name="Kv_y" value="48.0"/>
-            <param name="Kv_z" value="3.0"/>
-            <param name="Ka_x" value="27.0" />
-            <param name="Ka_y" value="27.0" />
-            <param name="Ka_z" value="0.0" />
-            <param name="Kj_x" value="8.0"/>
-            <param name="Kj_y" value="8.0"/>
-            <param name="Kj_z" value="0.0"/> -->
 
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
@@ -140,15 +138,21 @@
             <param name="load_pose_cutoff_freq" value="$(arg load_pose_cutoff_freq)"/>
             <param name="load_pose_q" value="$(arg load_pose_q)"/>
             <param name="load_pose_verbose" value="$(arg load_pose_verbose)"/>
-            <param name="pend_angle_cutoff_freq" value="$(arg pend_angle_cutoff_freq)"/>
-            <param name="pend_angle_q" value="$(arg pend_angle_q)"/>
-            <param name="pend_angle_verbose" value="$(arg pend_angle_verbose)"/>
             <param name="load_vel_cutoff_freq" value="$(arg load_vel_cutoff_freq)"/>
             <param name="load_vel_q" value="$(arg load_vel_q)"/>
             <param name="load_vel_verbose" value="$(arg load_vel_verbose)"/>
+            <param name="load_acc_cutoff_freq" value="$(arg load_acc_cutoff_freq)"/>
+            <param name="load_acc_q" value="$(arg load_acc_q)"/>
+            <param name="load_acc_verbose" value="$(arg load_acc_verbose)"/>
+            <param name="pend_angle_cutoff_freq" value="$(arg pend_angle_cutoff_freq)"/>
+            <param name="pend_angle_q" value="$(arg pend_angle_q)"/>
+            <param name="pend_angle_verbose" value="$(arg pend_angle_verbose)"/>            
             <param name="pend_rate_cutoff_freq" value="$(arg pend_rate_cutoff_freq)"/>
             <param name="pend_rate_q" value="$(arg pend_rate_q)"/>
             <param name="pend_rate_verbose" value="$(arg pend_rate_verbose)"/>
+            <param name="pend_angular_acc_cutoff_freq" value="$(arg pend_angular_acc_cutoff_freq)"/>
+            <param name="pend_angular_acc_q" value="$(arg pend_angular_acc_q)"/>
+            <param name="pend_angular_acc_verbose" value="$(arg pend_angular_acc_verbose)"/>
         </node>
     </group>
 

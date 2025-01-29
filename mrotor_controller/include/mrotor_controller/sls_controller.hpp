@@ -39,7 +39,8 @@ class mrotorSlsCtrl: public mrotorCtrl {
 
     /* Variables */
     double cable_length_;
-    double load_mass_;    
+    double load_mass_;   
+    bool use_real_pend_angle_; 
 
     const char* gazebo_link_name_[1] = {
       "px4vision_0::px4vision_ancl::base_link", 
@@ -55,8 +56,10 @@ class mrotorSlsCtrl: public mrotorCtrl {
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> mav_vel_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_pose_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_vel_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> load_acc_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_angle_filter_;
     std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_rate_filter_;
+    std::unique_ptr<SecondOrderFilter<Eigen::Vector3d>> pend_angular_acc_filter_;
 
     /* Callback Functions */
     void cmdloopCb(const ros::TimerEvent &event);

@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   message_generation
   dynamic_reconfigure
+  controller_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -113,7 +114,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES mrotor_controller mavros 
-  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime controller_msgs
 #  DEPENDS system_lib
 )
 

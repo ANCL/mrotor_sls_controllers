@@ -5,7 +5,6 @@
   <static>false</static>
   <include>
     <uri>model://px4vision_ancl</uri>
-    <pose>0 0 0.105 0 0 0</pose>
   </include>
 
   <!-- <link name='battery'>
@@ -44,9 +43,7 @@
   </link> -->
 
   <link name='pendulum'>
-    <!-- <pose>-0.425 0 0 0 1.57 0</pose> -->
-    <!-- <pose>0 0 -0.425 0 0 0</pose> -->
-    <pose>0 0 -0.32 0 0 0</pose>
+    <pose>-0.425 0 0 0 1.57 0</pose>
     <inertial>
       <mass>0.01</mass>
       <inertia>
@@ -58,7 +55,7 @@
         <izz>0.000000005</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='pendulun_collision'>
+    <collision name='pendulun_collision'>
       <geometry>
         <cylinder>
           <radius>0.01</radius>
@@ -73,7 +70,7 @@
           <ode/>
         </friction>
       </surface>
-    </collision> -->
+    </collision>
     <visual name='pendulum_visual'>
       <geometry>
         <cylinder>
@@ -93,11 +90,8 @@
   </link>
 
   <link name='load'>
-    <!-- <pose>-0.85 0 0 0 1.57 0</pose> -->
-    <!-- <pose>0 0 -0.85 0 0 0</pose> -->
-    <pose>0 0 -0.745 0 0 0</pose>
+    <pose>-0.85 0 0 0 1.57 0</pose>
     <inertial>
-      <!-- <mass>0.25</mass> -->
       <mass>0.25</mass>
       <inertia>
         <ixx>0.0000625</ixx>
@@ -108,7 +102,7 @@
         <izz>0.0000625</izz>
       </inertia>
     </inertial>
-    <!-- <collision name='load_collision'>
+    <collision name='load_collision'>
       <geometry>
         <sphere>
           <radius>0.025 0.025 0.025</radius>
@@ -122,7 +116,7 @@
           <ode/>
         </friction>
       </surface>
-    </collision> -->
+    </collision>
     <visual name='load_visual'>
       <geometry>
         <sphere>

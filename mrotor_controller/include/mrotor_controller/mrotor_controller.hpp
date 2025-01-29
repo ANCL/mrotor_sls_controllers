@@ -40,6 +40,7 @@ class mrotorCtrl {
     ros::Subscriber mav_state_sub_;
     ros::Subscriber gazebo_link_state_sub_;
     ros::Subscriber vicon_sub_;
+    ros::Subscriber mavros_pose_sub_;
 
     /* Publishers */
     ros::Publisher target_pose_pub_;
@@ -116,6 +117,7 @@ class mrotorCtrl {
     bool ekf_enabled_ = false;
     bool ekf_init_ = false;
     bool lpf_enabled_ = false;
+    bool use_onboard_att_meas_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links
@@ -154,7 +156,8 @@ class mrotorCtrl {
     void gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg);
     void statusloopCb(const ros::TimerEvent &event);
     void cmdloopCb(const ros::TimerEvent &event);
-    void viconCb(const geometry_msgs::TransformStamped::ConstPtr& msg);
+    void viconCb(const geometry_msgs::TransformStamped::ConstPtr &msg);
+    void mavrosPoseCb(const geometry_msgs::PoseStamped::ConstPtr &msg);
     void dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig &config, uint32_t level);
     // Helper Functions
     void pubSystemStatus();

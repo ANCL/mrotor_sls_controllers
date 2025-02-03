@@ -41,6 +41,10 @@ class mrotorSlsCtrl: public mrotorCtrl {
     double cable_length_;
     double load_mass_;   
     bool use_real_pend_angle_; 
+    double xi_[3] = {0, 0, 0}; // Controller State
+
+    double ref_x_[5], ref_y_[5], ref_z_[5];
+    double integral_limit_, err_pose_limit_vertical_, err_pose_limit_horizontal_;
 
     const char* gazebo_link_name_[1] = {
       "px4vision_0::px4vision_ancl::base_link", 
@@ -70,7 +74,11 @@ class mrotorSlsCtrl: public mrotorCtrl {
 
     /* Helper Functions */
     Eigen::Vector3d applyQuasiSlsCtrl(void);
+    Eigen::Vector3d applyQSFCtrl(void);
+    Eigen::Vector3d applyQSFIntegralCtrl(void);
     void updateReference(void);
+    void updateRefStatic(double x, double y, double z);
+    void updateRefSinusoidal(double t);
     void checkMissionStage(double mission_time_span);
     void exeControl(void);
     Eigen::Vector3d transformPose(Eigen::Vector3d p_0, Eigen::Vector3d offsetVector);
@@ -79,7 +87,6 @@ class mrotorSlsCtrl: public mrotorCtrl {
     void loadSlsStateRaw();
     void applyIteration(void);
     void applyFiniteDiffSys(void);
-    void applyLowPassFilter(void);
     void applyLowPassFilterFiniteDiff(void);
     void readViconDronePose(const geometry_msgs::TransformStamped::ConstPtr& msg);
     void readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg);

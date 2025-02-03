@@ -170,6 +170,14 @@ add_subdirectory(src/QSFGeometricController)
 target_link_libraries(${PROJECT_NAME}_node QSFGeometricController) 
 
 
+add_subdirectory(src/QSFController)
+target_link_libraries(${PROJECT_NAME}_node QSFController) 
+
+
+add_subdirectory(src/QSFIntegralController)
+target_link_libraries(${PROJECT_NAME}_node QSFIntegralController) 
+
+
 #############
 ## Install ##
 #############

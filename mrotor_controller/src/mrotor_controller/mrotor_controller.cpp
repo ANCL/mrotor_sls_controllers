@@ -26,6 +26,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     target_attitude_pub_ = nh_.advertise<mavros_msgs::AttitudeTarget> ("mavros/setpoint_raw/attitude", 10);
     target_attitude_debug_pub_ = nh_.advertise<mavros_msgs::AttitudeTarget> ("mrotor_controller/setpoint_raw/attitude", 10);
     system_status_pub_ = nh_.advertise<mavros_msgs::CompanionProcessStatus>("mavros/companion_process/status", 1);
+    mav_vel_pub_ = nh_.advertise<geometry_msgs::TwistStamped> ("mrotor_controller/mav_vel", 10);
 
 
     /* Service Clients */
@@ -53,6 +54,7 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<bool>("drag_comp_enabled", drag_comp_enabled_, false);
     nh_private_.param<bool>("ekf_enabled", ekf_enabled_, false);
     nh_private_.param<bool>("lpf_enabled", lpf_enabled_, false);
+    nh_private_.param<bool>("integrator_enabled", integrator_enabled_, false);
     // drone physical constants
     nh_private_.param<double>("mav_mass", mav_mass_, 1.56);    
     nh_private_.param<double>("max_acc", max_fb_acc_, 9.0);
@@ -106,6 +108,8 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<double>("pos_z_0", pos_z_0_, 1.0);     
     // tolerance
     nh_private_.param<double>("tracking_exit_min_error", tracking_exit_min_error_, 0.5); 
+    // limit
+    nh_private_.param<double>("ref_rate_limit", ref_rate_limit_, 1); 
     // rotor drag compensation
     nh_private_.param<double>("rotor_drag_d_x", rotorDragD_x_, 0.0);
     nh_private_.param<double>("rotor_drag_d_y", rotorDragD_y_, 0.0);
@@ -303,6 +307,11 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
         ROS_INFO("Reconfigure request : use_onboard_att_meas_ = %s ", use_onboard_att_meas_ ? "true" : "false");
     } 
 
+    else if(integrator_enabled_ != config.integrator_enabled) {
+        integrator_enabled_ = config.integrator_enabled;
+        ROS_INFO("Reconfigure request : integrator_enabled_ = %s ", integrator_enabled_ ? "true" : "false");
+    } 
+
 
     /* Max Acceleration*/
     else if (max_fb_acc_ != config.max_acc) {
@@ -328,6 +337,19 @@ void mrotorCtrl::dynamicReconfigureCb(mrotor_controller::MrotorControllerConfig 
     }
 
     /* Gains */
+    // Integrator
+    else if(Kint_x_ != config.Kint_x) {
+        Kint_x_ = config.Kint_x;
+        ROS_INFO("Reconfigure request : Kint_x = %.3f ", Kint_x_);
+    }
+    else if(Kint_y_ != config.Kint_y) {
+        Kint_y_ = config.Kint_y;
+        ROS_INFO("Reconfigure request : Kint_y = %.3f ", Kint_y_);
+    }
+    else if(Kint_z_ != config.Kint_z) {
+        Kint_z_ = config.Kint_z;
+        ROS_INFO("Reconfigure request : Kint_z = %.3f ", Kint_z_);
+    }
     // Position
     else if(Kpos_x_ != config.Kp_x) {
         Kpos_x_ = config.Kp_x;
@@ -642,6 +664,14 @@ void mrotorCtrl::debugRateCommands(const Eigen::Vector4d &cmd, const Eigen::Vect
     msg.orientation.z = target_attitude(3);
     msg.thrust = cmd(3);
     target_attitude_debug_pub_.publish(msg);
+}
+
+void mrotorCtrl::clipBodyRateCmd(Eigen::Vector4d &bodyrate_cmd){
+    for(int i=0;i<3;i++) {
+        if(std::abs(bodyrate_cmd(i)) > ref_rate_limit_) {
+            bodyrate_cmd(i) = std::copysign(ref_rate_limit_, bodyrate_cmd(i));
+        }
+    }
 }
 
 void mrotorCtrl::updateReference(){

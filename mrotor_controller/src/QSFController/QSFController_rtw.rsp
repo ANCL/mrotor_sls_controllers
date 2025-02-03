@@ -1,0 +1,6 @@
+﻿rt_nonfinite.obj
+rtGetNaN.obj
+rtGetInf.obj
+QSFController_initialize.obj
+QSFController_terminate.obj
+QSFController.obj

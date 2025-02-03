@@ -1,5 +1,7 @@
 #include "mrotor_controller/sls_controller.hpp"
 #include "mrotor_controller/QSFGeometricController.h"
+#include "mrotor_controller/QSFController.h"
+#include "mrotor_controller/QSFIntegralController.h"
 
 /*================================================================= SLS Controller =================================================================*/
 
@@ -25,7 +27,6 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     /* Publishers */
     sls_state_raw_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state_raw", 1);
     sls_state_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state", 1);
-    // sls_state_ekf_pub_ = nh_.advertise<controller_msgs::SlsState> ("mrotor_sls_controller/sls_state_ekf", 1);
     sls_force_pub_ = nh_.advertise<controller_msgs::SlsForce> ("mrotor_sls_controller/sls_force", 1);
 
     /* Timer */
@@ -34,6 +35,14 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     nh_private_.param<double>("cable_length", cable_length_, 0.85);
     nh_private_.param<double>("load_mass", load_mass_, 0.25);
     nh_private_.param<bool>("use_real_pend_angle", use_real_pend_angle_, false);
+
+    nh_private_.param<double>("Kint_x", Kint_x_, 12);
+    nh_private_.param<double>("Kint_y", Kint_y_, 12);
+    nh_private_.param<double>("Kint_z", Kint_z_, 1);
+
+    nh_private_.param<double>("integral_limit", integral_limit_, 10);
+    nh_private_.param<double>("err_pose_limit_horizontal", err_pose_limit_horizontal_, 0.2);
+    nh_private_.param<double>("err_pose_limit_vertical", err_pose_limit_vertical_, 0.2);
 
     last_stage_ = ros::Time::now();
     vicon_load_last_called_ = ros::Time::now();
@@ -48,11 +57,6 @@ mrotorSlsCtrl::mrotorSlsCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &n
     R_ = Eigen::MatrixXd::Zero(12, 12);
 
     // ekf_ = std::make_shared<mrotorSlsEKF>(mav_mass_, load_mass_, cable_length_, P_, Q_, R_, false);
-
-    // load_vel_tau_up_ = 0.1592;
-    // load_vel_tau_down_ = 0.1592;
-    // load_vel_filter_ = new FirstOrderFilter(load_vel_tau_up_, load_vel_tau_down_, loadVel_);
-
 
     double mav_pose_cutoff_freq;
     double mav_pose_q;
@@ -123,90 +127,6 @@ mrotorSlsCtrl::~mrotorSlsCtrl(){
     // Destructor 
 }
 
-void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg){
-    /* Match links on the first call*/
-    if(!gazebo_link_name_matched_ && init_complete_){
-        ROS_INFO_STREAM("SLS gazebo");
-        ROS_INFO("[gazeboLinkStateCb] Matching Gazebo Links");
-        int n_name = sizeof(gazebo_link_name_)/sizeof(*gazebo_link_name_); 
-        ROS_INFO_STREAM("[gazeboLinkStateCb] n_name=" << n_name);
-        int n_link = mav_num_*8+2+1; 
-        ROS_INFO_STREAM("[gazeboLinkStateCb] n_link=" << n_link);
-        int temp_index[n_name];
-        for(int i=0; i<n_link; i++){
-            for(int j=0; j<n_name; j++){
-                if(msg->name[i] == gazebo_link_name_[j]){
-                    temp_index[j] = i;
-                };
-            }
-        }
-        drone_link_index_ = temp_index[mav_id_-1];
-        gazebo_link_name_matched_ = true; ROS_INFO_STREAM("drone_link_index_=" << drone_link_index_);
-        ROS_INFO("[gazeboLinkStateCb] Matching Complete");
-    }
-
-    if(gazebo_link_name_matched_) {
-        /* Get Gazebo Link States*/
-        // >>> Pose
-        // Drone
-        mavPos_ = toEigen(msg -> pose[drone_link_index_].position);
-        if(!use_onboard_att_meas_) {
-            mavAtt_(0) = msg -> pose[drone_link_index_].orientation.w;
-            mavAtt_(1) = msg -> pose[drone_link_index_].orientation.x;
-            mavAtt_(2) = msg -> pose[drone_link_index_].orientation.y;
-            mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
-        }
-        // Load 
-        loadPos_ = toEigen(msg -> pose[10].position);  
-        // Pendulum
-        pendAngle_ = loadPos_ - mavPos_;
-        pendAngle_ = pendAngle_ / pendAngle_.norm();
-
-        // >>> Velocity
-        mavVel_ = toEigen(msg -> twist[drone_link_index_].linear);
-        mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
-        loadVel_ = toEigen(msg -> twist[10].linear);
-        pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
-
-        if(!cmdloop_enabled_) {
-            diff_t_ = ros::Time::now().toSec() - gazebo_last_called_.toSec(); 
-            gazebo_last_called_ = ros::Time::now();
-
-            applyLowPassFilterFiniteDiff();
-
-            // // EKF
-            // if(ctrl_enabled_) {
-            //     controller_msgs::SlsState sls_state_ekf;
-            //     if(!ekf_init_) {
-            //         ekf_ -> resetInitState(sls_state_);
-            //         ekf_init_ = true;
-            //     }    
-
-            //     if(diff_t_ > FD_EPSILON) {
-            //         sls_state_ekf = ekf_ -> updateFilter(sls_state_, sls_force_, diff_t_);
-            //         sls_state_ekf_pub_.publish(sls_state_ekf); 
-            //     }
-
-            //     if(ekf_enabled_) {   
-            //         sls_state_ = sls_state_ekf;
-            //     }
-
-            //     else {
-            //         sls_state_pub_.publish(sls_state_); 
-            //     }
-            // }
-
-            // else {
-            //     ekf_init_ = false;
-            // }
-            
-
-            exeControl(); 
-
-            // ROS_INFO_STREAM("loadpose_err: " << loadPos_(2) - 1.0);
-        }
-    }
-}
 
 Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     double target_force_ned[3];
@@ -229,20 +149,12 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     const double t = ros::Time::now().toSec() - traj_tracking_last_called_.toSec();
     QSFGeometricController(sls_state_array, K, param, ref, t, target_force_ned);
 
-    // if(std::abs(target_force_ned[0]) > 2 ) {
-    //     target_force_ned[0] = std::copysign(2, target_force_ned[0]);
-    // }
-
-    // if(std::abs(target_force_ned[1]) > 2 ) {
-    //     target_force_ned[1] = std::copysign(2,target_force_ned[1]);
-    // }
-
     sls_force_.header.stamp = ros::Time::now();
     sls_force_.sls_force[0] = target_force_ned[0];
     sls_force_.sls_force[1] = target_force_ned[1];
     sls_force_.sls_force[2] = target_force_ned[2];
     sls_force_pub_.publish(sls_force_);
-    // ROS_INFO_STREAM("SLS Force: " << target_force_ned[2]);
+
     Eigen::Vector3d a_des;
     a_des(0) = target_force_ned[1] / mav_mass_;
     a_des(1) = target_force_ned[0] / mav_mass_;
@@ -267,16 +179,174 @@ Eigen::Vector3d mrotorSlsCtrl::applyQuasiSlsCtrl(){
     return a_des;
 }
 
-void mrotorSlsCtrl::updateReference(){
-    double t = ros::Time::now().toSec();
-    double sp_x = c_x_ + r_x_ * std::sin(fr_x_ * t + ph_x_);
-    double sp_y = c_y_ + r_y_ * std::sin(fr_y_ * t + ph_y_);
-    double sp_z = c_z_ + r_z_ * std::sin(fr_z_ * t + ph_z_);
-    double sp_x_dt = r_x_ * fr_x_ * std::cos(fr_x_ * t + ph_x_);
-    double sp_y_dt = r_y_ * fr_y_ * std::cos(fr_y_ * t + ph_y_);
-    double sp_z_dt = r_z_ * fr_z_ * std::cos(fr_z_ * t + ph_z_);
+Eigen::Vector3d mrotorSlsCtrl::applyQSFCtrl(void){
+    const double t = ros::Time::now().toSec() - traj_tracking_last_called_.toSec();
+    double target_force_ned[3];
+    const double K[10] = {Kpos_x_, Kvel_x_, Kacc_x_, Kjer_x_, Kpos_y_, Kvel_y_, Kacc_y_, Kjer_y_, Kpos_z_, Kvel_z_};
+    const double param[4] = {load_mass_, mav_mass_, cable_length_, gravity_acc_};
 
-    if(mission_enabled_){
+    double sls_state_array[12];
+    for(int i=0; i<12;i++){
+       sls_state_array[i] = sls_state_.sls_state[i];
+    }
+
+    double ref_x[5];
+    double ref_y[5];
+    double ref_z[5];
+    for(int i = 0; i< 5; i++) {
+        ref_x[i] = ref_y_[i];
+        ref_y[i] = ref_x_[i];
+        ref_z[i] = -ref_z_[i];
+    }
+    double xi_dot[3];
+    QSFController(sls_state_array, K, param, ref_x, ref_y, ref_z, target_force_ned);
+
+    sls_force_.header.stamp = ros::Time::now();
+    sls_force_.sls_force[0] = target_force_ned[0];
+    sls_force_.sls_force[1] = target_force_ned[1];
+    sls_force_.sls_force[2] = target_force_ned[2];
+    sls_force_pub_.publish(sls_force_);
+
+    Eigen::Vector3d a_des;
+    a_des(0) = target_force_ned[1] / mav_mass_;
+    a_des(1) = target_force_ned[0] / mav_mass_;
+    a_des(2) = -target_force_ned[2] / mav_mass_;
+
+    Eigen::Vector3d a_fb = a_des + gravity_;
+
+    if (a_fb.norm() > max_fb_acc_)
+    a_fb = (max_fb_acc_ / a_fb.norm()) * a_fb;
+
+    // rotor drag compensation
+    Eigen::Vector3d a_rd;
+    if(drag_comp_enabled_) {
+        a_rd = compensateRotorDrag(t);
+    }
+    else {
+        a_rd = Eigen::Vector3d::Zero();
+    } 
+
+    a_des = a_fb - a_rd - gravity_;
+    
+    return a_des;
+}
+
+Eigen::Vector3d mrotorSlsCtrl::applyQSFIntegralCtrl(void){
+    const double t = ros::Time::now().toSec() - traj_tracking_last_called_.toSec();
+    double target_force_ned[3];
+    const double K[13] = {Kint_x_, Kpos_x_, Kvel_x_, Kacc_x_, Kjer_x_, Kint_y_, Kpos_y_, Kvel_y_, Kacc_y_, Kjer_y_, Kint_z_, Kpos_z_, Kvel_z_};
+    const double param[4] = {load_mass_, mav_mass_, cable_length_, gravity_acc_};
+
+    double sls_state_array[15];
+    for(int i=0; i<12;i++){
+       sls_state_array[i] = sls_state_.sls_state[i];
+    }
+    for(int i=12; i<15; i++){
+        sls_state_array[i] = xi_[i-12];
+    }
+
+    double ref_x[5];
+    double ref_y[5];
+    double ref_z[5];
+    for(int i = 0; i < 5; i++) {
+        ref_x[i] = ref_y_[i];
+        ref_y[i] = ref_x_[i];
+        ref_z[i] = -ref_z_[i];
+    }
+    double xi_dot[3];
+    QSFIntegralController(sls_state_array, K, param, ref_x, ref_y, ref_z, target_force_ned, xi_dot);
+
+    double load_pose[3] = {sls_state_array[0], sls_state_array[1], sls_state_array[2]};
+    double load_pose_ref[3] = {ref_x[0], ref_y[0], ref_z[0]};
+
+
+    ROS_INFO_STREAM("integral_limit: " << integral_limit_);
+    ROS_INFO_STREAM("xi0: " << xi_[0]);
+    ROS_INFO_STREAM("xi1: " << xi_[1]);
+    ROS_INFO_STREAM("xi2: " << xi_[2]);
+    for(int i=0; i<3; i++) {
+        ROS_INFO_STREAM("err: " << std::abs(load_pose[i] - load_pose_ref[i]));
+        if(std::abs(xi_[i] + xi_dot[i] * diff_t_) <= integral_limit_){
+            xi_[i] +=  xi_dot[i] * diff_t_;
+        }
+    }
+
+    sls_force_.header.stamp = ros::Time::now();
+    sls_force_.sls_force[0] = target_force_ned[0];
+    sls_force_.sls_force[1] = target_force_ned[1];
+    sls_force_.sls_force[2] = target_force_ned[2];
+    sls_force_pub_.publish(sls_force_);
+
+    Eigen::Vector3d a_des;
+    a_des(0) = target_force_ned[1] / mav_mass_;
+    a_des(1) = target_force_ned[0] / mav_mass_;
+    a_des(2) = -target_force_ned[2] / mav_mass_;
+
+    Eigen::Vector3d a_fb = a_des + gravity_;
+
+    if (a_fb.norm() > max_fb_acc_)
+    a_fb = (max_fb_acc_ / a_fb.norm()) * a_fb;
+
+    // rotor drag compensation
+    Eigen::Vector3d a_rd;
+    if(drag_comp_enabled_) {
+        a_rd = compensateRotorDrag(t);
+    }
+    else {
+        a_rd = Eigen::Vector3d::Zero();
+    } 
+
+    a_des = a_fb - a_rd - gravity_;
+    
+    return a_des;
+}
+
+
+
+void mrotorSlsCtrl::updateRefStatic(double x, double y, double z){
+    if(std::abs(x - loadPos_(0)) > err_pose_limit_horizontal_){
+        x = std::copysign(err_pose_limit_horizontal_, x - loadPos_(0)) + loadPos_(0);
+    }
+
+    if(std::abs(y - loadPos_(1)) > err_pose_limit_horizontal_){
+        y = std::copysign(err_pose_limit_horizontal_, y - loadPos_(1)) + loadPos_(1);
+    }
+
+    if(std::abs(z - loadPos_(2)) > err_pose_limit_vertical_){
+        z = std::copysign(err_pose_limit_vertical_, z - loadPos_(2)) + loadPos_(2);
+    }
+    
+    for(int i = 0; i < 5; i++){
+        ref_x_[i] = 0;
+        ref_y_[i] = 0;
+        ref_z_[i] = 0;
+    }
+    ref_x_[0] = x;
+    ref_y_[0] = y;
+    ref_z_[0] = z;
+}
+
+void mrotorSlsCtrl::updateRefSinusoidal(double t){
+    ref_x_[0] = c_x_ + r_x_ * std::sin(fr_x_ * t + ph_x_);
+    ref_y_[0] = c_y_ + r_y_ * std::sin(fr_y_ * t + ph_y_);
+    ref_z_[0] = c_z_ + r_z_ * std::sin(fr_z_ * t + ph_z_);
+    ref_x_[1] = r_x_ * fr_x_ * std::cos(fr_x_ * t + ph_x_);
+    ref_y_[1] = r_y_ * fr_y_ * std::cos(fr_y_ * t + ph_y_);
+    ref_z_[1] = r_z_ * fr_z_ * std::cos(fr_z_ * t + ph_z_);
+    ref_x_[2] = -r_x_ * fr_x_ * fr_x_ * std::sin(fr_x_ * t + ph_x_);
+    ref_y_[2] = -r_y_ * fr_y_ * fr_y_ * std::sin(fr_y_ * t + ph_y_);
+    ref_z_[2] = -r_z_ * fr_z_ * fr_z_ * std::sin(fr_z_ * t + ph_z_);
+    ref_x_[3] = -r_x_ * fr_x_ * fr_x_ * fr_x_ * std::cos(fr_x_ * t + ph_x_);
+    ref_y_[3] = -r_y_ * fr_y_ * fr_y_ * fr_y_ * std::cos(fr_y_ * t + ph_y_);
+    ref_z_[3] = -r_z_ * fr_z_ * fr_z_ * fr_z_ * std::cos(fr_z_ * t + ph_z_);
+    ref_x_[4] = r_x_ * fr_x_ * fr_x_ * fr_x_ * fr_x_ * std::sin(fr_x_ * t + ph_x_);
+    ref_y_[4] = r_y_ * fr_y_ * fr_y_ * fr_y_ * fr_y_ * std::sin(fr_y_ * t + ph_y_);
+    ref_z_[4] = r_z_ * fr_z_ * fr_z_ * fr_z_ * fr_z_ * std::sin(fr_z_ * t + ph_z_);
+}
+
+void mrotorSlsCtrl::updateReference(){
+    
+    if(mission_enabled_) {
         switch(mission_stage_){
             case 0:
                 if(!mission_initialized_){
@@ -287,6 +357,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
+                updateRefStatic(c_x_, c_y_, c_z_);
                 checkMissionStage(10);
                 break;
             case 1:
@@ -294,6 +365,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
+                updateRefStatic(c_x_1_, c_y_1_, c_z_1_);
                 checkMissionStage(10);
                 break;
             case 2:
@@ -301,6 +373,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
+                updateRefStatic(c_x_2_, c_y_2_, c_z_2_);
                 checkMissionStage(10);
                 break;
             case 3:
@@ -308,6 +381,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
+                updateRefStatic(c_x_3_, c_y_3_, c_z_3_);
                 checkMissionStage(10);
                 break;
             case 4:
@@ -315,6 +389,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
+                updateRefStatic(c_x_, c_y_, c_z_);
                 checkMissionStage(10);
                 break;
             case 5:
@@ -323,6 +398,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetFrequency_ << fr_x_, fr_y_, fr_z_;
                 targetPhase_ << ph_x_, ph_y_, ph_z_;
                 traj_tracking_enabled_ = true;
+                updateRefSinusoidal(ros::Time::now().toSec() - traj_tracking_last_called_.toSec());
                 checkMissionStage(20);
                 break;
             default:
@@ -331,6 +407,7 @@ void mrotorSlsCtrl::updateReference(){
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
                 traj_tracking_enabled_ = false;
+                updateRefStatic(pos_x_0_, pos_y_0_, pos_z_0_);
                 if(ros::Time::now().toSec() - mission_last_called_.toSec() >= 10){
                     ROS_INFO("[exeMission] Mission Accomplished");
                     mission_last_called_ = ros::Time::now();
@@ -340,6 +417,13 @@ void mrotorSlsCtrl::updateReference(){
     }
 
     else {
+        if(!traj_tracking_enabled_) {
+            updateRefStatic(0, 0, 1);
+        }
+
+        else {
+            updateRefSinusoidal(ros::Time::now().toSec());
+        }
         mission_last_called_ = ros::Time::now();
         if(mission_stage_ == 5) {
             traj_tracking_enabled_ = false;
@@ -350,39 +434,6 @@ void mrotorSlsCtrl::updateReference(){
         targetRadium_ << r_x_, r_y_, r_z_;
         targetFrequency_ << fr_x_, fr_y_, fr_z_;
         targetPhase_ << ph_x_, ph_y_, ph_z_;
-
-
-        // // Entering tracking
-        // if(!last_tracking_state_ && traj_tracking_enabled_ && (mav_num_>1 && (std::abs(mavPos_(0)-sp_x)>0.1 || std::abs(mavPos_(1)-sp_y)>0.1))) {
-        //     targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_;  // Initial Position
-        //     targetVel_ << 0.0, 0.0, 0.0;
-        //     targetJerk_ = Eigen::Vector3d::Zero(); // Not used so just set it to zero  
-        //     // ROS_INFO("1");
-        // }    
-
-        // // Running tracking
-        // else if(last_tracking_state_ && traj_tracking_enabled_) {
-        //     targetPos_ << sp_x, sp_y, sp_z;
-        //     targetVel_ << sp_x_dt, sp_y_dt, sp_z_dt;
-        //     last_tracking_state_ = traj_tracking_enabled_;
-        //     // ROS_INFO("2");
-        // }
-
-        // // Exiting from tracking
-        // else if(last_tracking_state_ && (mav_num_>1 && (std::abs(mavPos_(0)-pos_x_0_)>tracking_exit_min_error_ || std::abs(mavPos_(1)-pos_y_0_)>tracking_exit_min_error_))) {
-        //     targetPos_ << sp_x, sp_y, sp_z;
-        //     targetVel_ << sp_x_dt, sp_y_dt, sp_z_dt;   
-        //     // ROS_INFO("3");     
-        // }
-
-        // // Initial Point
-        // else {
-        //     targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_;  // Initial Position
-        //     targetVel_ << 0.0, 0.0, 0.0;
-        //     targetJerk_ = Eigen::Vector3d::Zero(); // Not used so just set it to zero  
-        //     last_tracking_state_ = traj_tracking_enabled_;
-        //     // ROS_INFO("4");
-        // }
     }
 }
 
@@ -403,8 +454,19 @@ void mrotorSlsCtrl::exeControl(void){
         traj_tracking_enabled_last_ = traj_tracking_enabled_;
 
         Eigen::Vector3d desired_acc;
-        desired_acc = applyQuasiSlsCtrl();
+        if(!integrator_enabled_) {
+            // desired_acc = applyQuasiSlsCtrl();
+            desired_acc = applyQSFCtrl();
+            for(int i=0; i<3; i++){
+                xi_[i] = 0;
+            }
+        }
+        else {
+            desired_acc = applyQSFIntegralCtrl();
+        }
+        
         computeBodyRateCmd(cmdBodyRate_, desired_acc);
+        clipBodyRateCmd(cmdBodyRate_);
         if(ctrl_enabled_){
             pubRateCommands(cmdBodyRate_, q_des_);
         }
@@ -416,21 +478,9 @@ void mrotorSlsCtrl::exeControl(void){
     }
 }
 
-
-
-
 void mrotorSlsCtrl::cmdloopCb(const ros::TimerEvent &event) {
     if(cmdloop_enabled_) {
-        diff_t_ = ros::Time::now().toSec() - cmdloop_last_called_.toSec(); 
-        cmdloop_last_called_ = ros::Time::now();
 
-        if(finite_diff_enabled_){
-            applyFiniteDiffSys();
-        }
-
-        loadSlsState();  
-
-        exeControl(); 
     }
 }
 
@@ -463,12 +513,18 @@ Eigen::Vector3d mrotorSlsCtrl::compensateRotorDrag(double t) {
     bool use_feedback = true;
     // mav vel ref
     Eigen::Vector3d loadVelRDC, loadAccRDC, loadVelFF, loadAccFF, loadVelFB, loadAccFB;
-    loadVelFF(0) = targetRadium_(0) * targetFrequency_(0) * std::cos(targetFrequency_(0) * t + targetPhase_(0));
-    loadVelFF(1) = targetRadium_(1) * targetFrequency_(1) * std::cos(targetFrequency_(1) * t + targetPhase_(1));
-    loadVelFF(2) = targetRadium_(2) * targetFrequency_(2) * std::cos(targetFrequency_(2) * t + targetPhase_(2));
-    loadAccFF(0) = -targetRadium_(0) * std::pow(targetFrequency_(0), 2) * std::sin(targetFrequency_(0) * t + targetPhase_(0));
-    loadAccFF(1) = -targetRadium_(1) * std::pow(targetFrequency_(1), 2) * std::sin(targetFrequency_(1) * t + targetPhase_(1));
-    loadAccFF(2) = -targetRadium_(2) * std::pow(targetFrequency_(2), 2) * std::sin(targetFrequency_(2) * t + targetPhase_(2));
+    // loadVelFF(0) = targetRadium_(0) * targetFrequency_(0) * std::cos(targetFrequency_(0) * t + targetPhase_(0));
+    // loadVelFF(1) = targetRadium_(1) * targetFrequency_(1) * std::cos(targetFrequency_(1) * t + targetPhase_(1));
+    // loadVelFF(2) = targetRadium_(2) * targetFrequency_(2) * std::cos(targetFrequency_(2) * t + targetPhase_(2));
+    // loadAccFF(0) = -targetRadium_(0) * std::pow(targetFrequency_(0), 2) * std::sin(targetFrequency_(0) * t + targetPhase_(0));
+    // loadAccFF(1) = -targetRadium_(1) * std::pow(targetFrequency_(1), 2) * std::sin(targetFrequency_(1) * t + targetPhase_(1));
+    // loadAccFF(2) = -targetRadium_(2) * std::pow(targetFrequency_(2), 2) * std::sin(targetFrequency_(2) * t + targetPhase_(2));
+    loadVelFF(0)  = ref_x_[1];
+    loadVelFF(1)  = ref_y_[1];
+    loadVelFF(2)  = ref_z_[1];
+    loadAccFF(0)  = ref_x_[2];
+    loadAccFF(1)  = ref_y_[2];
+    loadAccFF(2)  = ref_z_[2];
     loadVelFB = loadVel_;
     loadAccFB = loadAcc_;
 
@@ -588,16 +644,6 @@ void mrotorSlsCtrl::applyFiniteDiffSys(void) {
     // if(diff_t_ != 0.004) ROS_INFO_STREAM("FD: Time interval varied!" << mavVel_prev_ << "" << mavVel_);
 }
 
-
-void mrotorSlsCtrl::applyLowPassFilter(void) {
-    if(lpf_enabled_) {
-        loadPos_ = load_pose_filter_ -> updateFilter(loadPos_, diff_t_);
-        pendAngle_ = pend_angle_filter_ -> updateFilter(pendAngle_, diff_t_);
-        loadVel_ = load_vel_filter_ -> updateFilter(loadVel_, diff_t_);
-        pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
-    }
-}
-
 void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
     const Eigen::Vector4d inverse(1.0, -1.0, -1.0, -1.0);
     const Eigen::Vector4d q_inv = inverse.asDiagonal() * mavAtt_prev_;
@@ -605,7 +651,7 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
 
     if(!use_real_pend_angle_) {
         loadPos_ = mavPos_;
-        loadPos_(2) = mavPos_(2) - cable_length_;
+        loadPos_(2) += -cable_length_;
     }
 
     if(lpf_enabled_) {
@@ -682,6 +728,12 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
             sls_state_raw_.header.stamp = ros::Time::now();
             sls_state_raw_pub_.publish(sls_state_raw_); 
 
+            mav_vel_.header.stamp = ros::Time::now();
+            mav_vel_.twist.linear.x = mavVel_(0);
+            mav_vel_.twist.linear.y = mavVel_(1);
+            mav_vel_.twist.linear.z = mavVel_(2);
+            mav_vel_pub_.publish(mav_vel_);
+
         }
 
         else {
@@ -740,24 +792,19 @@ void mrotorSlsCtrl::viconDrone1PoseCb(const geometry_msgs::TransformStamped::Con
 }
 
 void mrotorSlsCtrl::viconDrone2PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg) {
-    // ROS_INFO_STREAM("Vicon Drone2 Cb");
     readViconDronePose(msg);
     applyLowPassFilterFiniteDiff();
     exeControl();
 }
 
 void mrotorSlsCtrl::viconLoad1PoseCb(const geometry_msgs::TransformStamped::ConstPtr& msg){
-    // ROS_INFO_STREAM("Vicon Load1 Cb");
     readViconLoadPose(msg);
 }
 
 
 void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::ConstPtr& msg) {
-    
     diff_t_ = ros::Time::now().toSec() - vicon_drone_last_called_.toSec(); 
     vicon_drone_last_called_ = ros::Time::now();
-    // ROS_INFO_STREAM("diff_t_: " << diff_t_);
-
     mavPos_ = toEigen(msg -> transform.translation);
     if(!use_onboard_att_meas_) {
         mavAtt_(0) = msg -> transform.rotation.w;
@@ -765,17 +812,64 @@ void mrotorSlsCtrl::readViconDronePose(const geometry_msgs::TransformStamped::Co
         mavAtt_(2) = msg -> transform.rotation.y;
         mavAtt_(3) = msg -> transform.rotation.z;  
     }
-    // >>> Debug
-    // loadPos_ = mavPos_;
-    // loadPos_(2) += -0.85;
-
-    // applyLowPassFilterFiniteDiff();
-
-    // exeControl(); 
-
 }
 
 void mrotorSlsCtrl::readViconLoadPose(const geometry_msgs::TransformStamped::ConstPtr& msg) {
     loadPos_ = toEigen(msg -> transform.translation);
 }
 
+void mrotorSlsCtrl::gazeboLinkStateCb(const gazebo_msgs::LinkStates::ConstPtr& msg){
+    /* Match links on the first call*/
+    if(!gazebo_link_name_matched_ && init_complete_){
+        ROS_INFO_STREAM("SLS gazebo");
+        ROS_INFO("[gazeboLinkStateCb] Matching Gazebo Links");
+        int n_name = sizeof(gazebo_link_name_)/sizeof(*gazebo_link_name_); 
+        ROS_INFO_STREAM("[gazeboLinkStateCb] n_name=" << n_name);
+        int n_link = mav_num_*8+2+1; 
+        ROS_INFO_STREAM("[gazeboLinkStateCb] n_link=" << n_link);
+        int temp_index[n_name];
+        for(int i=0; i<n_link; i++){
+            for(int j=0; j<n_name; j++){
+                if(msg->name[i] == gazebo_link_name_[j]){
+                    temp_index[j] = i;
+                };
+            }
+        }
+        drone_link_index_ = temp_index[mav_id_-1];
+        gazebo_link_name_matched_ = true; ROS_INFO_STREAM("drone_link_index_=" << drone_link_index_);
+        ROS_INFO("[gazeboLinkStateCb] Matching Complete");
+    }
+
+    if(gazebo_link_name_matched_) {
+        /* Get Gazebo Link States*/
+        // >>> Pose
+        // Drone
+        mavPos_ = toEigen(msg -> pose[drone_link_index_].position);
+        if(!use_onboard_att_meas_) {
+            mavAtt_(0) = msg -> pose[drone_link_index_].orientation.w;
+            mavAtt_(1) = msg -> pose[drone_link_index_].orientation.x;
+            mavAtt_(2) = msg -> pose[drone_link_index_].orientation.y;
+            mavAtt_(3) = msg -> pose[drone_link_index_].orientation.z;    
+        }
+        // Load 
+        loadPos_ = toEigen(msg -> pose[10].position);  
+        // Pendulum
+        pendAngle_ = loadPos_ - mavPos_;
+        pendAngle_ = pendAngle_ / pendAngle_.norm();
+
+        // >>> Velocity
+        mavVel_ = toEigen(msg -> twist[drone_link_index_].linear);
+        mavRate_ = toEigen(msg -> twist[drone_link_index_].angular);
+        loadVel_ = toEigen(msg -> twist[10].linear);
+        pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+
+        if(!cmdloop_enabled_) {
+            diff_t_ = ros::Time::now().toSec() - gazebo_last_called_.toSec(); 
+            gazebo_last_called_ = ros::Time::now();
+
+            applyLowPassFilterFiniteDiff();
+
+            exeControl(); 
+        }
+    }
+}

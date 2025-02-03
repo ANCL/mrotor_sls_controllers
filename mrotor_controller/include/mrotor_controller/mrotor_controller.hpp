@@ -47,6 +47,7 @@ class mrotorCtrl {
     ros::Publisher target_attitude_pub_;
     ros::Publisher target_attitude_debug_pub_;
     ros::Publisher system_status_pub_;
+    ros::Publisher mav_vel_pub_;
 
     /* Service Clients */
     ros::ServiceClient arming_client_;
@@ -63,6 +64,7 @@ class mrotorCtrl {
     mavros_msgs::State mav_state_;
     mavros_msgs::CommandBool arm_cmd_;
     geometry_msgs::PoseStamped target_pose_;
+    geometry_msgs::TwistStamped mav_vel_;
 
     /* Vectors */
     Eigen::Vector3d mavPos_, mavVel_, mavRate_;
@@ -72,6 +74,7 @@ class mrotorCtrl {
     Eigen::Vector3d targetJerk_;
     Eigen::Vector3d gravity_{Eigen::Vector3d(0.0, 0.0, -9.80665)};
     Eigen::Vector3d Kpos_, Kvel_;
+    double Kint_x_, Kint_y_, Kint_z_;
     double Kpos_x_, Kpos_y_, Kpos_z_, Kvel_x_, Kvel_y_, Kvel_z_, Kacc_x_, Kacc_y_, Kacc_z_, Kjer_x_, Kjer_y_, Kjer_z_;
     double pos_x_0_, pos_y_0_, pos_z_0_;
     // Control Targets
@@ -118,6 +121,7 @@ class mrotorCtrl {
     bool ekf_init_ = false;
     bool lpf_enabled_ = false;
     bool use_onboard_att_meas_ = false;
+    bool integrator_enabled_ = false;
     // gazebo link indices
     int drone_link_index_;
     // number of gazebo links
@@ -146,6 +150,8 @@ class mrotorCtrl {
     double c_x_3_, c_y_3_, c_z_3_;
     // tolerance
     double tracking_exit_min_error_;
+    // limit
+    double ref_rate_limit_;
 
     /* Shared Pointer */
     std::shared_ptr<Control> controller_;
@@ -167,6 +173,7 @@ class mrotorCtrl {
     void computeBodyRateCmd(Eigen::Vector4d &bodyrate_cmd, const Eigen::Vector3d &a_des);
     Eigen::Vector4d acc2quaternion(const Eigen::Vector3d &vector_acc, const double &yaw);
     Eigen::Vector3d applyIOSFBLCtrl(const Eigen::Vector3d &target_pos, const Eigen::Vector3d &target_vel);
+    void clipBodyRateCmd(Eigen::Vector4d &bodyrate_cmd);
     void updateReference();
     void exeControl();
     // APIs for Child Classes

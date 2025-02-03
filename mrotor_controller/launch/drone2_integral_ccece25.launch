@@ -1,63 +1,63 @@
 <?xml version="1.0"?>
 <launch>
-    <group ns="drone1">
-        <arg name="mav_id" default="1"/>
+    <group ns="drone2">
+        <arg name="mav_id" default="2"/>
         <arg name="mav_name" default="px4vision"/>
         <arg name="sim_enabled" default="true"/>
-        <arg name="ctrl_enabled" default="true"/>
+        <arg name="ctrl_enabled" default="false"/>
         <arg name="rate_ctrl_enabled" default="true"/>
         <arg name="traj_tracking_enabled" default="false"/>
-        <arg name="finite_diff_enabled" default="false"/>
+        <arg name="finite_diff_enabled" default="true"/>
         <arg name="mission_enabled" default="false"/>
-        <arg name="drag_comp_enabled" default="true"/>
+        <arg name="drag_comp_enabled" default="false"/>
         <arg name="ekf_enabled" default="false"/>
-        <arg name="lpf_enabled" default="false"/>
+        <arg name="lpf_enabled" default="true"/>
         <arg name="use_onboard_att_meas" default="false"/>
-        <arg name="use_real_pend_angle" default="true"/>
+        <arg name="use_real_pend_angle" default="false"/>
         <arg name="integrator_enabled" default="false"/>
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
-        <arg name="pos_z_0" default="1.0"/>
+        <arg name="pos_z_0" default="1.25"/>
         <arg name="tracking_exit_min_error" default="0.5"/>
-        <arg name="rotor_drag_d_x" default="1.4"/>
-        <arg name="rotor_drag_d_y" default="1.4"/>
-        <arg name="rotor_drag_d_z" default="0.0"/>
-        <arg name="mav_mass" default="1.56"/>
-        <arg name="load_mass" default="0.25"/>
+        <arg name="rotor_drag_d_x" default="0.00"/>
+        <arg name="rotor_drag_d_y" default="0.00"/>
+        <arg name="rotor_drag_d_z" default="0.00"/>
+        <arg name="mav_mass" default="1.55"/>
+        <arg name="load_mass" default="0.263"/>
         <arg name="ref_rate_limit" default="2.0"/>
         <arg name="err_pose_limit_horizontal" default="5.0"/>
         <arg name="err_pose_limit_vertical" default="5.0"/>
 
-        <arg name="mav_pose_cutoff_freq" default="30.0"/>
+        <arg name="mav_pose_cutoff_freq" default="8.0"/>
         <arg name="mav_pose_q" default="0.625"/>
         <arg name="mav_pose_verbose" default="false"/>
 
-        <arg name="mav_vel_cutoff_freq" default="30.0"/>
+        <arg name="mav_vel_cutoff_freq" default="8.0"/>
         <arg name="mav_vel_q" default="0.625"/>
         <arg name="mav_vel_verbose" default="false"/>
 
-        <arg name="load_pose_cutoff_freq" default="30.0"/>
+        <arg name="load_pose_cutoff_freq" default="8.0"/>
         <arg name="load_pose_q" default="0.625"/>
         <arg name="load_pose_verbose" default="false"/>
-
-        <arg name="load_vel_cutoff_freq" default="30.0"/>
+        
+        <arg name="load_vel_cutoff_freq" default="8.0"/>
         <arg name="load_vel_q" default="0.625"/>
         <arg name="load_vel_verbose" default="false"/>
 
-        <arg name="load_acc_cutoff_freq" default="30.0"/>
+        <arg name="load_acc_cutoff_freq" default="8.0"/>
         <arg name="load_acc_q" default="0.625"/>
         <arg name="load_acc_verbose" default="false"/>
 
-        <arg name="pend_angle_cutoff_freq" default="30.0"/>
+        <arg name="pend_angle_cutoff_freq" default="8.0"/>
         <arg name="pend_angle_q" default="0.625"/>
         <arg name="pend_angle_verbose" default="false"/>
 
-        <arg name="pend_rate_cutoff_freq" default="30.0"/>
+        <arg name="pend_rate_cutoff_freq" default="8.0"/>
         <arg name="pend_rate_q" default="0.625"/>
         <arg name="pend_rate_verbose" default="false"/>
 
-        <arg name="pend_angular_acc_cutoff_freq" default="30.0"/>
+        <arg name="pend_angular_acc_cutoff_freq" default="8.0"/>
         <arg name="pend_angular_acc_q" default="0.625"/>
         <arg name="pend_angular_acc_verbose" default="false"/>
 
@@ -78,29 +78,59 @@
             <param name="use_real_pend_angle" value="$(arg use_real_pend_angle)" />
             <param name="integrator_enabled" value="$(arg integrator_enabled)" />
             <param name="max_acc" value="20.0" />
-            <param name="mav_mass" value="1.56" />
+            <param name="mav_mass" value="$(arg mav_mass)" />
             <param name="cable_length" value="0.85"/>
-            <param name="load_mass" value="0.25"/> 
+            <param name="load_mass" value="$(arg load_mass)"/> 
             <param name="attctrl_tau" value="0.1" />
-            <param name="normalized_thrust_constant" value="0.034436"/>
-            <param name="normalized_thrust_offset" value="0.14344"/>
-            <param name="Kp_x" value="24.0" />
+            <param name="normalized_thrust_constant" value="0.0435"/>
+            <param name="normalized_thrust_offset" value="0.0"/>
+            <param name="Kint_x" value="10.0" />
+            <param name="Kint_y" value="10.0" />
+            <param name="Kint_z" value="2.2361" />
+
+            <!-- <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
-            <!-- <param name="Kp_z" value="2.0" /> -->
-            <param name="Kp_z" value="10.0" />
+            <param name="Kp_z" value="2.0" />
             <param name="Kv_x" value="50.0"/>
             <param name="Kv_y" value="50.0"/>
-            <!-- <param name="Kv_z" value="3.0"/> -->
-            <param name="Kv_z" value="10.9545"/> 
+            <param name="Kv_z" value="3.0"/>
             <param name="Ka_x" value="35.0" />
             <param name="Ka_y" value="35.0" />
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="10.0"/>
             <param name="Kj_y" value="10.0"/>
+            <param name="Kj_z" value="0.0"/> -->
+
+            <!-- <param name="Kp_x" value="22.0" />
+            <param name="Kp_y" value="22.0" />
+            <param name="Kp_z" value="2.0" />
+            <param name="Kv_x" value="40.0"/>
+            <param name="Kv_y" value="40.0"/>
+            <param name="Kv_z" value="3.0"/>
+            <param name="Ka_x" value="23.0" />
+            <param name="Ka_y" value="23.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="7.0"/>
+            <param name="Kj_y" value="7.0"/>
+            <param name="Kj_z" value="0.0"/> -->
+
+            <param name="Kp_x" value="26.0" />
+            <param name="Kp_y" value="26.0" />
+            <param name="Kp_z" value="10.0" />
+            <param name="Kv_x" value="30.0"/>
+            <param name="Kv_y" value="30.0"/>
+            <param name="Kv_z" value="10.9545"/> 
+            <param name="Ka_x" value="20.0" />
+            <param name="Ka_y" value="20.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="7.0"/>
+            <param name="Kj_y" value="7.0"/>
             <param name="Kj_z" value="0.0"/>
+
+
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
-            <param name="c_z" value="1.0"/>
+            <param name="c_z" value="0.4"/>
             <param name="r_x" value="1.0"/>
             <param name="r_y" value="1.0"/>
             <param name="r_z" value="0.0"/>

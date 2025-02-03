@@ -25,6 +25,9 @@
         <arg name="rotor_drag_d_z" default="0.00"/>
         <arg name="mav_mass" default="1.55"/>
         <arg name="load_mass" default="0.263"/>
+        <arg name="ref_rate_limit" default="2.0"/>
+        <arg name="err_pose_limit_horizontal" default="5.0"/>
+        <arg name="err_pose_limit_vertical" default="5.0"/>
 
         <arg name="mav_pose_cutoff_freq" default="8.0"/>
         <arg name="mav_pose_q" default="0.625"/>
@@ -81,6 +84,9 @@
             <param name="attctrl_tau" value="0.1" />
             <param name="normalized_thrust_constant" value="0.0435"/>
             <param name="normalized_thrust_offset" value="0.0"/>
+            <param name="Kint_x" value="10.0" />
+            <param name="Kint_y" value="10.0" />
+            <param name="Kint_z" value="2.2361" />
 
             <!-- <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />

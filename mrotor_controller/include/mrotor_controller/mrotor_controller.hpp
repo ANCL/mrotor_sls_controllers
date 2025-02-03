@@ -145,6 +145,7 @@ class mrotorCtrl {
     double fr_x_, fr_y_, fr_z_; // frequency
     double ph_x_, ph_y_, ph_z_; // phase shift
     // mission setpoints
+    double c_x_0_, c_y_0_, c_z_0_;
     double c_x_1_, c_y_1_, c_z_1_;
     double c_x_2_, c_y_2_, c_z_2_;
     double c_x_3_, c_y_3_, c_z_3_;

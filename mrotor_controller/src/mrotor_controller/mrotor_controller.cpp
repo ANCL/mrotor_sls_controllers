@@ -93,6 +93,9 @@ mrotorCtrl::mrotorCtrl(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private_.param<double>("ph_y", ph_y_, 0.0);    
     nh_private_.param<double>("ph_z", ph_z_, 0.0);  
     // Mission Setpoints
+    nh_private_.param<double>("c_x_0", c_x_0_, 0.0);
+    nh_private_.param<double>("c_y_0", c_y_0_, 0.0);
+    nh_private_.param<double>("c_z_0", c_z_0_, 1.0);  
     nh_private_.param<double>("c_x_1", c_x_1_, 0.0);
     nh_private_.param<double>("c_y_1", c_y_1_, 0.0);
     nh_private_.param<double>("c_z_1", c_z_1_, 1.0);         

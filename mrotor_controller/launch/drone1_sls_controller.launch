@@ -18,7 +18,7 @@
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
-        <arg name="pos_z_0" default="1.0"/>
+        <arg name="pos_z_0" default="1.35"/>
         <arg name="tracking_exit_min_error" default="0.5"/>
         <arg name="rotor_drag_d_x" default="1.4"/>
         <arg name="rotor_drag_d_y" default="1.4"/>
@@ -83,7 +83,9 @@
             <param name="load_mass" value="0.25"/> 
             <param name="attctrl_tau" value="0.1" />
             <param name="normalized_thrust_constant" value="0.034436"/>
-            <param name="normalized_thrust_offset" value="0.14344"/>
+            <param name="normalized_thrust_offset" value="0.14344"/>        
+
+
             <param name="Kp_x" value="24.0" />
             <param name="Kp_y" value="24.0" />
             <!-- <param name="Kp_z" value="2.0" /> -->
@@ -98,9 +100,10 @@
             <param name="Kj_x" value="10.0"/>
             <param name="Kj_y" value="10.0"/>
             <param name="Kj_z" value="0.0"/>
+            
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
-            <param name="c_z" value="1.0"/>
+            <param name="c_z" value="0.5"/>
             <param name="r_x" value="1.0"/>
             <param name="r_y" value="1.0"/>
             <param name="r_z" value="0.0"/>
@@ -110,15 +113,19 @@
             <param name="ph_x" value="1.57"/>
             <param name="ph_y" value="0.0"/>
             <param name="ph_z" value="0.0"/>
+
+            <param name="c_x_0" value="0.0"/>
+            <param name="c_y_0" value="0.0"/>
+            <param name="c_z_0" value="0.5"/>
             <param name="c_x_1" value="0.0"/>
             <param name="c_y_1" value="0.0"/>
-            <param name="c_z_1" value="1.0"/>
-            <param name="c_x_2" value="1.5"/>
+            <param name="c_z_1" value="0.5"/>
+            <param name="c_x_2" value="1.0"/>
             <param name="c_y_2" value="0.0"/>
-            <param name="c_z_2" value="1.0"/>
+            <param name="c_z_2" value="0.5"/>
             <param name="c_x_3" value="0.0"/>
-            <param name="c_y_3" value="1.5"/>
-            <param name="c_z_3" value="1.0"/>
+            <param name="c_y_3" value="1.0"/>
+            <param name="c_z_3" value="0.5"/>
             <param name="pos_x_0" value="$(arg pos_x_0)"/>
             <param name="pos_y_0" value="$(arg pos_y_0)"/>
             <param name="pos_z_0" value="$(arg pos_z_0)"/>

@@ -5,7 +5,7 @@
         <arg name="mav_name" default="px4vision"/>
         <arg name="sim_enabled" default="true"/>
         <arg name="ctrl_enabled" default="false"/>
-        <arg name="rate_ctrl_enabled" default="true"/>
+        <arg name="rate_ctrl_enabled" default="false"/>
         <arg name="traj_tracking_enabled" default="false"/>
         <arg name="finite_diff_enabled" default="true"/>
         <arg name="mission_enabled" default="false"/>
@@ -13,12 +13,12 @@
         <arg name="ekf_enabled" default="false"/>
         <arg name="lpf_enabled" default="true"/>
         <arg name="use_onboard_att_meas" default="false"/>
-        <arg name="use_real_pend_angle" default="false"/>
+        <arg name="use_real_pend_angle" default="true"/>
         <arg name="integrator_enabled" default="false"/>
         <arg name="mav_num" value="1"/>
         <arg name="pos_x_0" default="0.0"/>
         <arg name="pos_y_0" default="0.0"/>
-        <arg name="pos_z_0" default="1.25"/>
+        <arg name="pos_z_0" default="1.35"/>
         <arg name="tracking_exit_min_error" default="0.5"/>
         <arg name="rotor_drag_d_x" default="0.00"/>
         <arg name="rotor_drag_d_y" default="0.00"/>
@@ -84,8 +84,8 @@
             <param name="attctrl_tau" value="0.1" />
             <param name="normalized_thrust_constant" value="0.0435"/>
             <param name="normalized_thrust_offset" value="0.0"/>
-            <param name="Kint_x" value="10.0" />
-            <param name="Kint_y" value="10.0" />
+            <param name="Kint_x" value="2.0" />
+            <param name="Kint_y" value="2.0" />
             <param name="Kint_z" value="2.2361" />
 
             <!-- <param name="Kp_x" value="24.0" />
@@ -127,10 +127,9 @@
             <param name="Kj_y" value="7.0"/>
             <param name="Kj_z" value="0.0"/>
 
-
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>
-            <param name="c_z" value="0.4"/>
+            <param name="c_z" value="0.5"/>
             <param name="r_x" value="1.0"/>
             <param name="r_y" value="1.0"/>
             <param name="r_z" value="0.0"/>
@@ -140,15 +139,19 @@
             <param name="ph_x" value="1.57"/>
             <param name="ph_y" value="0.0"/>
             <param name="ph_z" value="0.0"/>
+
+            <param name="c_x_0" value="0.0"/>
+            <param name="c_y_0" value="0.0"/>
+            <param name="c_z_0" value="0.5"/>
             <param name="c_x_1" value="0.0"/>
             <param name="c_y_1" value="0.0"/>
-            <param name="c_z_1" value="1.0"/>
-            <param name="c_x_2" value="1.5"/>
+            <param name="c_z_1" value="0.5"/>
+            <param name="c_x_2" value="1.0"/>
             <param name="c_y_2" value="0.0"/>
-            <param name="c_z_2" value="1.0"/>
+            <param name="c_z_2" value="0.5"/>
             <param name="c_x_3" value="0.0"/>
-            <param name="c_y_3" value="1.5"/>
-            <param name="c_z_3" value="1.0"/>
+            <param name="c_y_3" value="1.0"/>
+            <param name="c_z_3" value="0.5"/>
             <param name="pos_x_0" value="$(arg pos_x_0)"/>
             <param name="pos_y_0" value="$(arg pos_y_0)"/>
             <param name="pos_z_0" value="$(arg pos_z_0)"/>

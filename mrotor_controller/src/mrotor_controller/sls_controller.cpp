@@ -385,7 +385,7 @@ void mrotorSlsCtrl::updateReference(){
                 checkMissionStage(10);
                 break;
             case 4:
-                targetPos_ << c_x_, c_y_, c_z_; 
+                targetPos_ << c_x_0_, c_y_0_, c_z_0_; 
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
@@ -402,12 +402,12 @@ void mrotorSlsCtrl::updateReference(){
                 checkMissionStage(20);
                 break;
             default:
-                targetPos_ << pos_x_0_, pos_y_0_, pos_z_0_; 
+                targetPos_ << c_x_0_, c_y_0_, c_z_0_; 
                 targetRadium_ << 0, 0, 0;
                 targetFrequency_ << 0, 0, 0;
                 targetPhase_ << 0, 0, 0;
                 traj_tracking_enabled_ = false;
-                updateRefStatic(pos_x_0_, pos_y_0_, pos_z_0_);
+                updateRefStatic(c_x_0_, c_y_0_, c_z_0_);
                 if(ros::Time::now().toSec() - mission_last_called_.toSec() >= 10){
                     ROS_INFO("[exeMission] Mission Accomplished");
                     mission_last_called_ = ros::Time::now();
@@ -418,7 +418,7 @@ void mrotorSlsCtrl::updateReference(){
 
     else {
         if(!traj_tracking_enabled_) {
-            updateRefStatic(0, 0, 1);
+            updateRefStatic(c_x_0_, c_y_0_, c_z_0_);
         }
 
         else {
@@ -695,6 +695,7 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 // >>> pendRate
                 if(use_real_pend_angle_) {
                     pendRate_ = pendAngle_.cross(loadVel_ - mavVel_);
+                    // pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
                 }
                 else {
                     pendRate_ = Eigen::Vector3d::Zero();
@@ -702,8 +703,8 @@ void mrotorSlsCtrl::applyLowPassFilterFiniteDiff(void) {
                 sls_state_raw_.sls_state[9] = pendRate_(1);
                 sls_state_raw_.sls_state[10] = pendRate_(0);
                 sls_state_raw_.sls_state[11] = -pendRate_(2);
-                // pendRate_ = pendAngle_.cross((pendAngle_ - pendAngle_prev_) / diff_t_);
-                // pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
+                pendRate_ = pend_rate_filter_ -> updateFilter(pendRate_, diff_t_);
+
                 // >>> pendAngularAcc
                 pendAngularAcc_ = (pendRate_ - pendRate_prev_) / diff_t_;
                 pendAngularAcc_ = pend_angular_acc_filter_ -> updateFilter(pendAngularAcc_, diff_t_);

@@ -115,8 +115,20 @@
             <param name="Kj_y" value="10.0"/>
             <param name="Kj_z" value="0.0"/> -->
 
-            
-            <param name="Kp_x" value="26.0" />
+            <param name="Kp_x" value="22.0" />
+            <param name="Kp_y" value="22.0" />
+            <param name="Kp_z" value="2.0" />
+            <param name="Kv_x" value="40.0"/>
+            <param name="Kv_y" value="40.0"/>
+            <param name="Kv_z" value="3.0"/>
+            <param name="Ka_x" value="23.0" />
+            <param name="Ka_y" value="23.0" />
+            <param name="Ka_z" value="0.0" />
+            <param name="Kj_x" value="7.0"/>
+            <param name="Kj_y" value="7.0"/>
+            <param name="Kj_z" value="0.0"/>
+
+            <!-- <param name="Kp_x" value="26.0" />
             <param name="Kp_y" value="26.0" />
             <param name="Kp_z" value="10.0" />
             <param name="Kv_x" value="30.0"/>
@@ -127,7 +139,7 @@
             <param name="Ka_z" value="0.0" />
             <param name="Kj_x" value="7.0"/>
             <param name="Kj_y" value="7.0"/>
-            <param name="Kj_z" value="0.0"/>
+            <param name="Kj_z" value="0.0"/> -->
 
             <param name="c_x" value="0.0"/>
             <param name="c_y" value="0.0"/>

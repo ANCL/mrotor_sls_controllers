@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/zichen/ros_workspaces/ws_v13/devel/include/**",
+        "/opt/ros/noetic/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mrotor_sls_controllers/controller_msgs/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mrotor_sls_controllers/controller_sitl_gazebo/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mavros/libmavconn/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mavros/mavros/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mavros/mavros_msgs/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mrotor_sls_controllers/mrotor_controller/include/**",
+        "/home/zichen/ros_workspaces/ws_v13/src/mavros/test_mavros/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

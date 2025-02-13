@@ -66,11 +66,11 @@ Then install QGroundControl on windows: https://docs.px4.io/main/en/dev_setup/de
 ### 3. Install ROS Noetic & MAVROS(Source installation)  
 Follow the guide at https://docs.px4.io/main/en/ros/mavros_installation.html  
 ### Troubleshooting
-When install MAVROS, before create a catkin workspace, run
+When installing MAVROS, before create a catkin workspace, run
 ```
 sudo apt-get install python3-catkin-tools python3-rosinstall-generator -y
 ```
-If you see catkin build errors in step 5:
+If you see catkin build errors in step 5, you might need to use an older version of MAVROS:
 
 After finish 1st line of code in step 3 of MAVROS(source installation) guide, change ~catkin_ws/src/.rosinstall to
 

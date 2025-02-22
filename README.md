@@ -160,11 +160,12 @@ export GAZEBO_PLUGIN_PATH=$GAZEBO_PLUGIN_PATH:/usr/lib/x86_64-linux-gnu/gazebo-1
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/catkin_ws/src/ECE664_2025/controller_sitl_gazebo/models
 ```
 ## Run SLS SITL
-### 1. Setup SITL environment
+### 1. Launch SITL environment
 ```
 # in a new terminal
-roslaunch mrotor_controller sitl_sls_empty_world.launch
+roslaunch controller_sitl_gazebo sitl_sls_empty_world.launch
 ```  
+Note: If the vehicle model is not generated propeller in the GUI, try closing the terminal and launch again.
 ### 2. Run QGroundControl
 
 ### 3. Launch SITL controller launch script

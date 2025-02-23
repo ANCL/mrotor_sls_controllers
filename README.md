@@ -180,7 +180,7 @@ rosrun rqt_reconfigure rqt_reconfigure
 ```
 * Move sliders to change gains and references
 * Check tick-box "mission_enabled" to start set-point and trajectory tracking mission
-* Based on PX4Vision default setting, increase MC_ROLLRATE_D and MC_PITCHRATE_D to 0.004~0.008 for better transient response.
+* Based on PX4Vision vehicle default settings, increase MC_ROLLRATE_D and MC_PITCHRATE_D to 0.004~0.008 for better transient response.
 ## Plot the Data
 Plot the data you obtained using main_ccece25.m file in `MATLAB_Plot` folder by changing the name of the bag file in:
 ![image](https://github.com/user-attachments/assets/7584aca0-0345-45d9-8889-cc5074fbc41a)
